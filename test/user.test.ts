@@ -39,6 +39,22 @@ describe('POST /api/users', () => {
         expect(response.body.data.name).toBe("test");
     });
 
+    it('should reject register if username already exists', async () => {
+        await UserTest.create();
+
+        const response = await supertest(web)
+            .post("/api/users")
+            .send({
+                username: "test",
+                password: "test",
+                name: "test"
+            });
+
+        logger.debug(response.body);
+        expect(response.status).toBe(400);
+        expect(response.body.errors).toBeDefined();
+    });
+
 });
 
 describe('POST /api/users/login', () => {
