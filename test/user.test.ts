@@ -139,6 +139,16 @@ describe('GET /api/users/current', () => {
         expect(response.status).toBe(401);
         expect(response.body.errors).toBeDefined();
     });
+
+    it('should reject get user if token is not provided', async () => {
+        const response = await supertest(web)
+            .get("/api/users/current");
+        // No X-API-TOKEN header set
+
+        logger.debug(response.body);
+        expect(response.status).toBe(401);
+        expect(response.body.errors).toBeDefined();
+    });
 });
 
 describe('PATCH /api/users/current', () => {
