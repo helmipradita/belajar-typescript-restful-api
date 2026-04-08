@@ -278,4 +278,17 @@ describe('GET /api/contacts', () => {
         expect(response.body.paging.total_page).toBe(1);
         expect(response.body.paging.size).toBe(1);
     });
+
+    it('should reject search contact with invalid page', async () => {
+        const response = await supertest(web)
+            .get("/api/contacts")
+            .query({
+                page: 0  // Invalid: page must be >= 1
+            })
+            .set("X-API-TOKEN", "test");
+
+        logger.debug(response.body);
+        expect(response.status).toBe(400);
+        expect(response.body.errors).toBeDefined();
+    });
 });
