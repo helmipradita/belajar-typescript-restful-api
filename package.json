@@ -33,8 +33,17 @@
     ],
     "collectCoverageFrom": [
       "src/**/*.ts",
-      "!src/**/*.d.ts"
-    ]
+      "!src/**/*.d.ts",
+      "!src/type/**/*.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
   },
   "author": "Eko Kurniawan Khannedy",
   "license": "ISC",
@@ -43,6 +52,7 @@
     "@types/redis": "^4.0.10",
     "bcrypt": "^5.1.1",
     "express": "^4.19.2",
+    "kafkajs": "^2.2.4",
     "redis": "^5.11.0",
     "uuid": "^9.0.1",
     "winston": "^3.19.0",

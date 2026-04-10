@@ -1,6 +1,9 @@
 import {PrismaClient} from "@prisma/client";
 import {logger} from "./logging";
 
+// Limit connection pool size for test environment to avoid "too many connections" error
+const connectionLimit = process.env.NODE_ENV === "test" ? 1 : undefined;
+
 export const prismaClient = new PrismaClient({
     log: [
         {
@@ -19,7 +22,12 @@ export const prismaClient = new PrismaClient({
             emit: "event",
             level: "warn"
         }
-    ]
+    ],
+    datasources: {
+        db: {
+            url: process.env.DATABASE_URL
+        }
+    }
 });
 
 prismaClient.$on("error", (e) => {
