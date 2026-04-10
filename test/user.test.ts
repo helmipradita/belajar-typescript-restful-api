@@ -248,4 +248,46 @@ describe('DELETE /api/users/current', () => {
         expect(response.status).toBe(401);
         expect(response.body.errors).toBeDefined();
     });
+
+    it('should handle logout error gracefully', async () => {
+        // Mock UserService.logout to throw an error
+        const UserService = (await import("../src/service/user-service")).UserService;
+        jest.spyOn(UserService, 'logout').mockRejectedValueOnce(new Error("Database error"));
+
+        const response = await supertest(web)
+            .delete("/api/users/current")
+            .set("X-API-TOKEN", "test");
+
+        logger.debug(response.body);
+        expect(response.status).toBe(500);
+        expect(response.body.errors).toBeDefined();
+
+        jest.restoreAllMocks();
+    });
+});
+
+describe('GET /api/users/current - error handling', () => {
+    beforeEach(async () => {
+        await UserTest.create();
+    });
+
+    afterEach(async () => {
+        await UserTest.delete();
+    });
+
+    it('should handle get user error gracefully', async () => {
+        // Mock UserService.get to throw an error
+        const UserService = (await import("../src/service/user-service")).UserService;
+        jest.spyOn(UserService, 'get').mockRejectedValueOnce(new Error("Database error"));
+
+        const response = await supertest(web)
+            .get("/api/users/current")
+            .set("X-API-TOKEN", "test");
+
+        logger.debug(response.body);
+        expect(response.status).toBe(500);
+        expect(response.body.errors).toBeDefined();
+
+        jest.restoreAllMocks();
+    });
 });
