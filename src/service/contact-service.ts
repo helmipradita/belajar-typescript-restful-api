@@ -12,6 +12,8 @@ import {prismaClient} from "../application/database";
 import {logger} from "../application/logging";
 import {ResponseError} from "../error/response-error";
 import {Pageable} from "../model/page";
+import {contactProducer} from "../producer/contact-producer";
+import {createContactAuditEvent} from "../model/audit-model";
 
 export class ContactService {
 
@@ -28,6 +30,19 @@ export class ContactService {
         });
 
         logger.debug("record : " + JSON.stringify(contact));
+
+        // Publish audit event (non-blocking)
+        const auditEvent = createContactAuditEvent(
+            "contact.created",
+            contact.id,
+            user.username,
+            undefined,
+            contact
+        );
+        contactProducer.publishAuditEvent(auditEvent).catch(err =>
+            logger.error(`Failed to publish audit event: ${err}`)
+        );
+
         return toContactResponse(contact);
     }
 
@@ -53,7 +68,7 @@ export class ContactService {
 
     static async update(user: User, request: UpdateContactRequest) : Promise<ContactResponse> {
         const updateRequest = Validation.validate(ContactValidation.UPDATE, request);
-        await this.checkContactMustExists(user.username, updateRequest.id);
+        const existingContact = await this.checkContactMustExists(user.username, updateRequest.id);
 
         const contact = await prismaClient.contact.update({
             where: {
@@ -63,11 +78,23 @@ export class ContactService {
             data: updateRequest
         });
 
+        // Publish audit event (non-blocking)
+        const auditEvent = createContactAuditEvent(
+            "contact.updated",
+            contact.id,
+            user.username,
+            existingContact,
+            contact
+        );
+        contactProducer.publishAuditEvent(auditEvent).catch(err =>
+            logger.error(`Failed to publish audit event: ${err}`)
+        );
+
         return toContactResponse(contact);
     }
 
     static async remove(user: User, id: number) : Promise<ContactResponse> {
-        await this.checkContactMustExists(user.username, id);
+        const existingContact = await this.checkContactMustExists(user.username, id);
 
         const contact = await prismaClient.contact.delete({
             where: {
@@ -75,6 +102,18 @@ export class ContactService {
                 username: user.username
             }
         });
+
+        // Publish audit event (non-blocking)
+        const auditEvent = createContactAuditEvent(
+            "contact.deleted",
+            contact.id,
+            user.username,
+            existingContact,
+            undefined
+        );
+        contactProducer.publishAuditEvent(auditEvent).catch(err =>
+            logger.error(`Failed to publish audit event: ${err}`)
+        );
 
         return toContactResponse(contact);
     }

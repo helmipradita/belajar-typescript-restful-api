@@ -1,44 +1,173 @@
 services:
-  # Redis Service Only
+  # MySQL - Primary database
+  mysql:
+    image: mysql:8.0
+    container_name: contact-api-mysql
+    hostname: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: belajar_typescript_restful_api_db
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Zookeeper - Required for Kafka metadata management
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: contact-api-zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_MAX_CLIENT_CNXNS: 128
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka - Message broker for event streaming
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: contact-api-kafka
+    hostname: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9093:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9093,PLAINTEXT_HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_HOST
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Kafka UI - Web-based management interface
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: contact-api-kafka-ui
+    hostname: kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: contact-api-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_READONLY: "false"
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis - Caching layer
   redis:
     image: redis:7-alpine
-    container_name: belajar-typescript-redis
+    container_name: contact-api-redis
+    hostname: redis
     ports:
-      - "6380:6379"  # Host 6380 → Container 6379 (avoid conflict with other projects)
+      - "6380:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
     networks:
       - app-network
     restart: unless-stopped
 
-  # Redis Insight (Redis GUI)
+  # Redis Insight - Redis GUI for monitoring
   redis-insight:
     image: redislabs/redisinsight:latest
-    container_name: belajar-typescript-redis-insight
+    container_name: contact-api-redis-insight
+    hostname: redis-insight
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "8001:8001"
     environment:
-      - REDIS_CONN_STRING=redis://redis:6379  # Connect to Redis container
+      - RI_APP_LOCALE=en-US
+      - RI_APP_PORT=8001
     volumes:
       - redis_insight:/db
     networks:
       - app-network
-    depends_on:
-      - redis
     restart: unless-stopped
 
 volumes:
+  mysql_data:
+    name: contact-api-mysql-data
+    driver: local
+  zookeeper_data:
+    name: contact-api-zookeeper-data
+    driver: local
+  zookeeper_log:
+    name: contact-api-zookeeper-log
+    driver: local
+  kafka_data:
+    name: contact-api-kafka-data
+    driver: local
   redis_data:
+    name: contact-api-redis-data
     driver: local
   redis_insight:
+    name: contact-api-redis-insight
     driver: local
 
 networks:
   app-network:
+    name: contact-api-network
     driver: bridge

@@ -1,12 +1,16 @@
-### Register user
+### ============================================================================
+### AUTHENTICATION (Public - No Token Required)
+### ============================================================================
+
+### Register New User
 POST http://localhost:3000/api/users
 Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "eko",
-  "password" : "eko123",
-  "name" : "Eko"
+  "username": "testuser",
+  "password": "test123",
+  "name": "Test User"
 }
 
 ### Login User
@@ -15,120 +19,132 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "eko",
-  "password" : "rahasia"
+  "username": "testuser",
+  "password": "test123"
 }
 
-### Get User
+### ============================================================================
+### USER PROFILE (Protected - Requires X-API-TOKEN)
+### ============================================================================
+
+### Get Current User Profile
 GET http://localhost:3000/api/users/current
 Accept: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
 
-### Logout User
-DELETE http://localhost:3000/api/users/current
-Accept: application/json
-X-API-TOKEN: 8ced4df6-73a9-4353-9bcd-55f0dbb83cc9
-
-### Update User
+### Update User Profile
 PATCH http://localhost:3000/api/users/current
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: 23c057e8-64ed-4542-bea9-433e0e7a0c25
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 {
-  "name" : "Eko Kurniawan"
+  "name": "Updated Name"
 }
 
 ### Update User Password
 PATCH http://localhost:3000/api/users/current
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: 23c057e8-64ed-4542-bea9-433e0e7a0c25
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 {
-  "password" : "rahasia"
+  "password": "newpassword123"
 }
+
+### Logout User
+DELETE http://localhost:3000/api/users/current
+Accept: application/json
+X-API-TOKEN: YOUR_TOKEN_HERE
+
+### ============================================================================
+### CONTACTS (Protected - Requires X-API-TOKEN)
+### ============================================================================
 
 ### Create Contact
 POST http://localhost:3000/api/contacts
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 {
-  "first_name" : "Budi Kurniawan",
-  "last_name" : "Khannedy",
-  "email": "eko@example.com",
-  "phone" : "099123123213"
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john.doe@example.com",
+  "phone": "08123456789"
 }
+
+### Get Contact by ID
+GET http://localhost:3000/api/contacts/1
+Accept: application/json
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 ### Update Contact
-PUT http://localhost:3000/api/contacts/128
+PUT http://localhost:3000/api/contacts/1
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 {
-  "first_name" : "Eko",
-  "last_name" : "Khannedy",
-  "email": "eko@example.com",
-  "phone" : "099123123213"
+  "first_name": "John",
+  "last_name": "Smith",
+  "email": "john.smith@example.com",
+  "phone": "08987654321"
 }
 
-### Get Contact
-GET http://localhost:3000/api/contacts/128
+### Search Contacts (with pagination)
+GET http://localhost:3000/api/contacts?name=john&email=example.com&page=1&size=10
 Accept: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
 
-### Remove Contact
-DELETE http://localhost:3000/api/contacts/128
+### Delete Contact
+DELETE http://localhost:3000/api/contacts/1
 Accept: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
 
-### Search Contact
-GET http://localhost:3000/api/contacts
-Accept: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+### ============================================================================
+### ADDRESSES (Protected - Requires X-API-TOKEN)
+### ============================================================================
 
-### Add Address
-POST http://localhost:3000/api/contacts/130/addresses
+### Create Address for Contact
+POST http://localhost:3000/api/contacts/1/addresses
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 {
-  "street" : "Jalan B",
+  "street": "Jl. Sudirman No. 1",
   "city": "Jakarta",
-  "province" : "DKI Jakarta",
-  "country" : "Indonesia",
-  "postal_code" : "13123"
+  "province": "DKI Jakarta",
+  "country": "Indonesia",
+  "postal_code": "10110"
 }
 
-### Get Address
-GET http://localhost:3000/api/contacts/130/addresses/59
+### Get Address by ID
+GET http://localhost:3000/api/contacts/1/addresses/1
 Accept: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
+
+### List All Addresses for Contact
+GET http://localhost:3000/api/contacts/1/addresses
+Accept: application/json
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 ### Update Address
-PUT http://localhost:3000/api/contacts/130/addresses/59
+PUT http://localhost:3000/api/contacts/1/addresses/1
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
 
 {
-  "street" : "Jalan C",
-  "city": "Bandung",
-  "province" : "Jawa Barat",
-  "country" : "Indonesia",
-  "postal_code" : "34534"
+  "street": "Jl. Sudirman No. 123",
+  "city": "Jakarta Selatan",
+  "province": "DKI Jakarta",
+  "country": "Indonesia",
+  "postal_code": "12190"
 }
 
-### List Address
-GET http://localhost:3000/api/contacts/130/addresses
+### Delete Address
+DELETE http://localhost:3000/api/contacts/1/addresses/1
 Accept: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
-
-### Remove Address
-DELETE http://localhost:3000/api/contacts/130/addresses/59
-Accept: application/json
-X-API-TOKEN: 25edd380-731c-4d9f-ac9b-b49f01e205bd
+X-API-TOKEN: YOUR_TOKEN_HERE
