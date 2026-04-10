@@ -16,12 +16,21 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/*.test.ts"],
-    "setupFilesAfterEnv": ["<rootDir>/test/jest.setup.ts"],
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/jest.setup.ts"
+    ],
     "transform": {
       "^.+\\.(ts|tsx)$": "babel-jest"
     },
-    "moduleFileExtensions": ["ts", "tsx", "js", "json"],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "json"
+    ],
     "collectCoverageFrom": [
       "src/**/*.ts",
       "!src/**/*.d.ts"
@@ -31,8 +40,10 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@types/redis": "^4.0.10",
     "bcrypt": "^5.1.1",
     "express": "^4.19.2",
+    "redis": "^5.11.0",
     "uuid": "^9.0.1",
     "winston": "^3.19.0",
     "zod": "^3.24.2"
