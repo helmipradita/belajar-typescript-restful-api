@@ -51,3 +51,19 @@ model Address {
 
   @@map("addresses")
 }
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  eventType  String   @db.VarChar(50) // "contact.created", "contact.updated", etc.
+  entityType String   @db.VarChar(50) // "contact", "address"
+  entityId   Int      @db.UnsignedInt // Contact or Address ID
+  username   String   @db.VarChar(100)
+  timestamp  DateTime @default(now())
+  oldValue   Json? // Before state (for update/delete)
+  newValue   Json // After state
+
+  @@index([eventType, entityType])
+  @@index([username])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
