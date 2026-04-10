@@ -1,10 +1,56 @@
-# Zod 3.24 - Documentation (April 2026)
+# Zod 4.3 - Documentation (April 2026)
 
-Version: **3.24.2** | Node 22 Compatible: ✅
+Version: **4.3.6** | Node 22 Compatible: ✅
 
 ## Overview
 
 Zod is a TypeScript-first schema validation library with static type inference.
+
+## What's New in Zod 4
+
+### Top-Level String Format Validators
+
+Zod 4 promotes string format validators to top-level functions:
+
+```typescript
+// Zod 4 (Recommended)
+z.email();           // ✅ Email validation
+z.uuid();            // ✅ RFC 9562/4122 compliant UUID
+z.url();             // ✅ URL validation
+z.emoji();           // ✅ Single emoji character
+z.base64();          // ✅ Base64 encoding
+z.ipv4();            // ✅ IPv4 address
+z.ipv6();            // ✅ IPv6 address
+z.iso.date();        // ✅ ISO 8601 date
+z.iso.time();        // ✅ ISO 8601 time
+z.iso.datetime();    // ✅ ISO 8601 datetime
+
+// Zod 3 (Deprecated)
+z.string().email();      // ❌ Deprecated
+z.string().uuid();       // ❌ Deprecated
+z.string().url();        // ❌ Deprecated
+```
+
+### Unified Error Customization
+
+Zod 4 unifies error customization under a single `error` parameter:
+
+```typescript
+// Zod 4 (Recommended)
+z.string().min(5, { error: "Too short." });
+z.string({
+  error: (issue) => issue.code === 'too_small'
+    ? "Must be at least 5 characters"
+    : "Invalid input"
+});
+
+// Zod 3 (Deprecated)
+z.string().min(5, { message: "Too short." });
+z.string({
+  invalid_type_error: "Not a string",
+  required_error: "This field is required"
+});
+```
 
 ## Basic Schemas
 
@@ -36,6 +82,7 @@ const statusSchema = z.literal('ACTIVE');
 ### String Validations
 
 ```typescript
+// Basic string validation
 const passwordSchema = z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password too long')
@@ -43,9 +90,11 @@ const passwordSchema = z.string()
     .regex(/[a-z]/, 'Must contain lowercase')
     .regex(/[0-9]/, 'Must contain number');
 
-const emailSchema = z.string().email('Invalid email');
-const urlSchema = z.string().url('Invalid URL');
-const uuidSchema = z.string().uuid('Invalid UUID');
+// Top-level format validators
+const emailSchema = z.email('Invalid email');
+const urlSchema = z.url('Invalid URL');
+const uuidSchema = z.uuid('Invalid UUID');
+const ipv4Schema = z.ipv4('Invalid IPv4');
 ```
 
 ### Object Schema
@@ -56,12 +105,12 @@ const userSchema = z.object({
     password: z.string().min(8),
     name: z.string().min(1).max(100),
     age: z.number().optional(),
-    email: z.string().email().optional()
+    email: z.email().optional()
 });
 
 // Type inference
 type User = z.infer<typeof userSchema>;
-// { username: string; password: string; name: string; age?: number; email?: string; }
+// { username: string; password: string; name: string; age?: number; email?: string }
 ```
 
 ### Arrays
@@ -156,23 +205,6 @@ const passwordSchema = z.string()
     );
 ```
 
-### Multiple Refinement Errors
-
-Zod continues executing all refinements even if one fails:
-
-```typescript
-const myString = z.string()
-    .refine((val) => val.length > 8, { error: "Too short!" })
-    .refine((val) => val === val.toLowerCase(), { error: "Must be lowercase" });
-
-const result = myString.safeParse("OH NO");
-result.error?.issues;
-// [
-//   { "code": "custom", "message": "Too short!" },
-//   { "code": "custom", "message": "Must be lowercase" }
-// ]
-```
-
 ## Error Handling
 
 ### ZodError Structure
@@ -193,52 +225,21 @@ try {
 }
 ```
 
-### Custom Error Messages
+### Unified Error Customization
 
 ```typescript
+// Single error parameter
 const schema = z.object({
     username: z.string({
-        required_error: "Username is required",
-        invalid_type_error: "Username must be a string"
+        error: (issue) => issue.code === 'too_small'
+            ? 'Username must be at least 1 character'
+            : 'Invalid username'
     }),
     age: z.number({
-        required_error: "Age is required",
-        invalid_type_error: "Age must be a number"
-    }).min(18, { message: "Must be 18 or older" })
-});
-```
-
-## Transformations
-
-### Basic Transform
-
-```typescript
-const stringToNumber = z.string()
-    .transform((val) => Number(val));
-
-const emailSchema = z.string()
-    .email()
-    .transform((val) => val.toLowerCase());
-
-const result = emailSchema.parse('JOHN@EXAMPLE.COM');
-// Result: 'john@example.com' (string)
-```
-
-### Transform with Validation
-
-```typescript
-const coercedInt = z.transform((val, ctx) => {
-    try {
-        const parsed = Number.parseInt(String(val));
-        return parsed;
-    } catch (e) {
-        ctx.issues.push({
-            code: "custom",
-            message: "Not a number",
-            input: val,
-        });
-        return z.NEVER; // Special constant to exit transform
-    }
+        error: (issue) => issue.code === 'too_small'
+            ? 'Must be 18 or older'
+            : 'Invalid age'
+    })
 });
 ```
 
@@ -256,7 +257,7 @@ const baseUserSchema = z.object({
 // Extend base schema
 const registerSchema = baseUserSchema.extend({
     password: z.string().min(8),
-    email: z.string().email()
+    email: z.email()
 });
 
 // Partial schema (all optional)
@@ -266,25 +267,7 @@ const updateSchema = baseUserSchema.partial();
 const loginSchema = baseUserSchema.pick({ username: true });
 
 // Omit specific fields
-const publicUserSchema = baseUserSchema.omit({ username: true });
-```
-
-### Conditional Validation
-
-```typescript
-const schema = z.object({
-    type: z.enum(['individual', 'company']),
-    companyName: z.string().optional(),
-    firstName: z.string().optional(),
-    lastName: z.string().optional()
-}).refine((data) => {
-    if (data.type === 'company') {
-        return !!data.companyName;
-    }
-    return !!(data.firstName && data.lastName);
-}, {
-    message: "Required fields missing based on type"
-});
+const publicUserSchema = baseUserSchema.omit({ password: true });
 ```
 
 ## Common Patterns for APIs
@@ -335,23 +318,7 @@ const validated = Validation.validate(
 );
 ```
 
-### Error Response Format
-
-```typescript
-import { ZodError } from 'zod';
-
-export function formatZodError(error: ZodError) {
-    return {
-        message: 'Validation Error',
-        errors: error.errors.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message
-        }))
-    };
-}
-```
-
 ---
 
-**Source:** Context7 - /websites/zod_dev
-**Last Updated:** 2026-04-07
+**Source:** Context7 - /websites/zod_dev_v4
+**Last Updated:** 2026-04-10
