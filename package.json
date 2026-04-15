@@ -10,6 +10,8 @@
     "build": "tsc",
     "start": "node dist/main.js",
     "dev": "nodemon src/main.ts",
+    "dev:consumer": "nodemon src/consumer-server.ts",
+    "start:consumer": "node dist/consumer-server.js",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:studio": "prisma studio"

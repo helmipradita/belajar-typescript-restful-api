@@ -30,13 +30,13 @@ Accept: application/json
 ### Get Current User Profile
 GET http://localhost:3000/api/users/current
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 ### Update User Profile
 PATCH http://localhost:3000/api/users/current
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 {
   "name": "Updated Name"
@@ -46,7 +46,7 @@ X-API-TOKEN: YOUR_TOKEN_HERE
 PATCH http://localhost:3000/api/users/current
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 {
   "password": "newpassword123"
@@ -55,7 +55,7 @@ X-API-TOKEN: YOUR_TOKEN_HERE
 ### Logout User
 DELETE http://localhost:3000/api/users/current
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 ### ============================================================================
 ### CONTACTS (Protected - Requires X-API-TOKEN)
@@ -65,28 +65,28 @@ X-API-TOKEN: YOUR_TOKEN_HERE
 POST http://localhost:3000/api/contacts
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 {
-  "first_name": "John",
+  "first_name": "John1",
   "last_name": "Doe",
-  "email": "john.doe@example.com",
+  "email": "john1.doe@example.com",
   "phone": "08123456789"
 }
 
 ### Get Contact by ID
 GET http://localhost:3000/api/contacts/1
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 ### Update Contact
-PUT http://localhost:3000/api/contacts/1
+PUT http://localhost:3000/api/contacts/1404
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 {
-  "first_name": "John",
+  "first_name": "John John 34",
   "last_name": "Smith",
   "email": "john.smith@example.com",
   "phone": "08987654321"
@@ -95,25 +95,25 @@ X-API-TOKEN: YOUR_TOKEN_HERE
 ### Search Contacts (with pagination)
 GET http://localhost:3000/api/contacts?name=john&email=example.com&page=1&size=10
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 ### Delete Contact
 DELETE http://localhost:3000/api/contacts/1
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 ### ============================================================================
 ### ADDRESSES (Protected - Requires X-API-TOKEN)
 ### ============================================================================
 
 ### Create Address for Contact
-POST http://localhost:3000/api/contacts/1/addresses
+POST http://localhost:3000/api/contacts/1404/addresses
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 {
-  "street": "Jl. Sudirman No. 1",
+  "street": "Jl. Sudirman No.8",
   "city": "Jakarta",
   "province": "DKI Jakarta",
   "country": "Indonesia",
@@ -123,21 +123,21 @@ X-API-TOKEN: YOUR_TOKEN_HERE
 ### Get Address by ID
 GET http://localhost:3000/api/contacts/1/addresses/1
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 ### List All Addresses for Contact
 GET http://localhost:3000/api/contacts/1/addresses
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 ### Update Address
-PUT http://localhost:3000/api/contacts/1/addresses/1
+PUT http://localhost:3000/api/contacts/1404/addresses/681
 Accept: application/json
 Content-Type: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b
 
 {
-  "street": "Jl. Sudirman No. 123",
+  "street": "Jl. Sudirman No. 12",
   "city": "Jakarta Selatan",
   "province": "DKI Jakarta",
   "country": "Indonesia",
@@ -147,4 +147,4 @@ X-API-TOKEN: YOUR_TOKEN_HERE
 ### Delete Address
 DELETE http://localhost:3000/api/contacts/1/addresses/1
 Accept: application/json
-X-API-TOKEN: YOUR_TOKEN_HERE
+X-API-TOKEN: 44a0ab89-2b97-49fb-8354-27593af5369b

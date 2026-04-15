@@ -1,41 +1,28 @@
-import { web } from "./application/web";
 import { logger } from "./application/logging";
 import { disconnectRedis } from "./application/redis";
-import { contactProducer } from "./producer/contact-producer";
+import { AuditConsumer } from "./consumer/audit-consumer";
 import { prismaClient } from "./application/database";
+
+let auditConsumer: AuditConsumer | null = null;
 
 // Track shutdown state
 let isShuttingDown = false;
 
-// Initialize Kafka Producer
-async function startKafkaProducer() {
+async function start() {
   try {
-    await contactProducer.start();
-    logger.info("Kafka Producer initialized");
+    logger.info("Starting Kafka Consumer Service...");
+
+    auditConsumer = new AuditConsumer();
+    await auditConsumer.start();
+
+    logger.info("Kafka Consumer Service is running");
+    logger.info("Subscribed to: contact.audit, address.audit");
+
   } catch (error) {
-    logger.error(`Failed to initialize Kafka Producer: ${error}`);
-    // Continue running without Kafka - don't crash the app
+    logger.error(`Failed to start Kafka Consumer Service: ${error}`);
+    process.exit(1);
   }
 }
-
-const server = web.listen(3000, async () => {
-  logger.info("Listening on port 3000");
-
-  // Start Kafka Producer
-  await startKafkaProducer();
-});
-
-// Handle server errors
-server.on("error", (error: NodeJS.ErrnoException) => {
-  if (error.code === "EADDRINUSE") {
-    logger.error(`Port 3000 is already in use. Another instance may be running.`);
-    logger.error("Run 'pkill -f \"ts-node src/main.ts\"\" to kill orphaned processes");
-    process.exit(1);
-  } else {
-    logger.error(`Server error: ${error}`);
-    process.exit(1);
-  }
-});
 
 // Graceful shutdown handler with proper cleanup sequence
 const gracefulShutdown = async (signal: string) => {
@@ -45,7 +32,7 @@ const gracefulShutdown = async (signal: string) => {
   }
 
   isShuttingDown = true;
-  logger.info(`${signal} received. Starting graceful shutdown...`);
+  logger.info(`${signal} received. Shutting down Kafka Consumer Service...`);
 
   // Create a timeout promise that rejects after 30 seconds
   const shutdownTimeout = new Promise<never>((_, reject) => {
@@ -53,42 +40,31 @@ const gracefulShutdown = async (signal: string) => {
   });
 
   try {
-    // Step 1: Stop accepting new HTTP requests (close server)
-    await Promise.race([
-      new Promise<void>((resolve) => {
-        server.close(() => {
-          logger.info("HTTP server closed");
-          resolve();
-        });
-      }),
-      shutdownTimeout
-    ]);
-
-    // Step 2: Shutdown Kafka Producer (flush pending messages first)
-    if (contactProducer.isReady()) {
-      logger.info("Shutting down Kafka Producer...");
+    // Step 1: Stop consuming and disconnect Kafka Consumer
+    if (auditConsumer && auditConsumer.isActive()) {
+      logger.info("Stopping Kafka Consumer...");
       await Promise.race([
-        contactProducer.shutdown(),
+        auditConsumer.shutdown(),
         shutdownTimeout
       ]);
-      logger.info("Kafka Producer shutdown");
+      logger.info("Kafka Consumer stopped");
     }
 
-    // Step 3: Disconnect from Redis
+    // Step 2: Disconnect from Redis
     await Promise.race([
       disconnectRedis(),
       shutdownTimeout
     ]);
     logger.info("Redis disconnected");
 
-    // Step 4: Disconnect from Database (Prisma)
+    // Step 3: Disconnect from Database (Prisma)
     await Promise.race([
       prismaClient.$disconnect(),
       shutdownTimeout
     ]);
     logger.info("Database disconnected");
 
-    logger.info("Graceful shutdown complete");
+    logger.info("Kafka Consumer Service shutdown complete");
     process.exit(0);
 
   } catch (error) {
@@ -111,6 +87,9 @@ process.on("uncaughtException", (error: Error) => {
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (reason: unknown, promise: Promise<unknown>) => {
   logger.error("Unhandled Rejection at:", promise, "reason:", reason);
-  // Don't exit immediately, log and continue
-  // In production, you might want to implement circuit breaker here
+  // Don't exit immediately for consumer - log and continue
+  // The consumer should be resilient to temporary failures
 });
+
+// Start the service
+start();

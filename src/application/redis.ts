@@ -92,11 +92,19 @@ export const withRedis = async <T>(
  */
 export const disconnectRedis = async (): Promise<void> => {
     try {
-        await redisClient.quit();
-        isConnected = false;
-        logger.info("Redis disconnected gracefully");
+        // Only disconnect if the client is open
+        if (redisClient.isOpen) {
+            await redisClient.quit();
+            isConnected = false;
+            logger.info("Redis disconnected gracefully");
+        }
     } catch (error) {
-        logger.error("Error disconnecting Redis:", error);
+        // Ignore errors if already closed
+        if ((error as any).message?.includes("The client is closed")) {
+            logger.info("Redis already disconnected");
+        } else {
+            logger.error("Error disconnecting Redis:", error);
+        }
     }
 };
 
@@ -115,3 +123,8 @@ export const checkRedisHealth = async (): Promise<boolean> => {
 };
 
 export { redisClient };
+
+/**
+ * Get the Redis client instance (for health checks)
+ */
+export const getRedisClient = (): typeof redisClient => redisClient;
