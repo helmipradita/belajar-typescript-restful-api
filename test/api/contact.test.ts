@@ -1,9 +1,9 @@
-import {ContactTest, UserTest} from "./test-util";
+import {ContactTest, UserTest} from "../test-util";
 import supertest from "supertest";
-import {web} from "../src/application/web";
-import {logger} from "../src/application/logging";
+import {app} from "../../src/app/app";
+import {logger} from "../../src/app/logging";
 
-describe('POST /api/contacts', () => {
+describe('POST /api/v1/contacts', () => {
     beforeEach(async () => {
         await UserTest.create()
     });
@@ -14,8 +14,8 @@ describe('POST /api/contacts', () => {
     });
 
     it('should create new contact', async () => {
-        const response = await supertest(web)
-            .post("/api/contacts")
+        const response = await supertest(app)
+            .post("/api/v1/contacts")
             .set("X-API-TOKEN", "test")
             .send({
                 first_name : "eko",
@@ -25,7 +25,7 @@ describe('POST /api/contacts', () => {
             });
 
         logger.debug(response.body);
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(201);
         expect(response.body.data.id).toBeDefined();
         expect(response.body.data.first_name).toBe("eko");
         expect(response.body.data.last_name).toBe("khannedy");
@@ -34,8 +34,8 @@ describe('POST /api/contacts', () => {
     });
 
     it('should reject create new contact if data is invalid', async () => {
-        const response = await supertest(web)
-            .post("/api/contacts")
+        const response = await supertest(app)
+            .post("/api/v1/contacts")
             .set("X-API-TOKEN", "test")
             .send({
                 first_name : "",
@@ -47,10 +47,12 @@ describe('POST /api/contacts', () => {
         logger.debug(response.body);
         expect(response.status).toBe(400);
         expect(response.body.errors).toBeDefined();
+        expect(Array.isArray(response.body.errors)).toBe(true);
+        expect(response.body.errors[0].message).toBeDefined();
     });
 });
 
-describe('GET /api/contacts/:contactId', () => {
+describe('GET /api/v1/contacts/:contactId', () => {
 
     beforeEach(async () => {
         await UserTest.create()
@@ -64,8 +66,8 @@ describe('GET /api/contacts/:contactId', () => {
 
     it('should be able get contact', async () => {
         const contact = await ContactTest.get();
-        const response = await supertest(web)
-            .get(`/api/contacts/${contact.id}`)
+        const response = await supertest(app)
+            .get(`/api/v1/contacts/${contact.id}`)
             .set("X-API-TOKEN", "test");
 
         logger.debug(response.body);
@@ -79,18 +81,19 @@ describe('GET /api/contacts/:contactId', () => {
 
     it('should reject get contact if contact is not found', async () => {
         const contact = await ContactTest.get();
-        const response = await supertest(web)
-            .get(`/api/contacts/${contact.id + 1}`)
+        const response = await supertest(app)
+            .get(`/api/v1/contacts/${contact.id + 1}`)
             .set("X-API-TOKEN", "test");
 
         logger.debug(response.body);
         expect(response.status).toBe(404);
         expect(response.body.errors).toBeDefined();
+        expect(response.body.errors[0].message).toBe("Contact not found");
     });
 
 });
 
-describe('PUT /api/contacts/:contactId', () => {
+describe('PUT /api/v1/contacts/:contactId', () => {
     beforeEach(async () => {
         await UserTest.create()
         await ContactTest.create();
@@ -103,8 +106,8 @@ describe('PUT /api/contacts/:contactId', () => {
 
     it('should be able to update contact', async () => {
         const contact = await ContactTest.get();
-        const response = await supertest(web)
-            .put(`/api/contacts/${contact.id}`)
+        const response = await supertest(app)
+            .put(`/api/v1/contacts/${contact.id}`)
             .set("X-API-TOKEN", 'test')
             .send({
                 first_name: "eko",
@@ -124,8 +127,8 @@ describe('PUT /api/contacts/:contactId', () => {
 
     it('should reject update contact if request is invalid', async () => {
         const contact = await ContactTest.get();
-        const response = await supertest(web)
-            .put(`/api/contacts/${contact.id}`)
+        const response = await supertest(app)
+            .put(`/api/v1/contacts/${contact.id}`)
             .set("X-API-TOKEN", 'test')
             .send({
                 first_name: "",
@@ -140,7 +143,7 @@ describe('PUT /api/contacts/:contactId', () => {
     });
 });
 
-describe('DELETE /api/contacts/:contactId', () => {
+describe('DELETE /api/v1/contacts/:contactId', () => {
     beforeEach(async () => {
         await UserTest.create()
         await ContactTest.create();
@@ -153,8 +156,8 @@ describe('DELETE /api/contacts/:contactId', () => {
 
     it('should be able to remove contact', async () => {
         const contact = await ContactTest.get();
-        const response = await supertest(web)
-            .delete(`/api/contacts/${contact.id}`)
+        const response = await supertest(app)
+            .delete(`/api/v1/contacts/${contact.id}`)
             .set("X-API-TOKEN", "test");
 
         logger.debug(response.body);
@@ -164,8 +167,8 @@ describe('DELETE /api/contacts/:contactId', () => {
 
     it('should reject remove contact if contact is not found', async () => {
         const contact = await ContactTest.get();
-        const response = await supertest(web)
-            .delete(`/api/contacts/${contact.id + 1}`)
+        const response = await supertest(app)
+            .delete(`/api/v1/contacts/${contact.id + 1}`)
             .set("X-API-TOKEN", "test");
 
         logger.debug(response.body);
@@ -174,7 +177,7 @@ describe('DELETE /api/contacts/:contactId', () => {
     });
 });
 
-describe('GET /api/contacts', () => {
+describe('GET /api/v1/contacts', () => {
     beforeEach(async () => {
         await UserTest.create()
         await ContactTest.create();
@@ -186,8 +189,8 @@ describe('GET /api/contacts', () => {
     });
 
     it('should be able to search contact', async () => {
-        const response = await supertest(web)
-            .get("/api/contacts")
+        const response = await supertest(app)
+            .get("/api/v1/contacts")
             .set("X-API-TOKEN", "test");
 
         logger.debug(response.body);
@@ -199,8 +202,8 @@ describe('GET /api/contacts', () => {
     });
 
     it('should be able to search contact using name', async () => {
-        const response = await supertest(web)
-            .get("/api/contacts")
+        const response = await supertest(app)
+            .get("/api/v1/contacts")
             .query({
                 name: "es"
             })
@@ -215,8 +218,8 @@ describe('GET /api/contacts', () => {
     });
 
     it('should be able to search contact using email', async () => {
-        const response = await supertest(web)
-            .get("/api/contacts")
+        const response = await supertest(app)
+            .get("/api/v1/contacts")
             .query({
                 email: ".com"
             })
@@ -231,8 +234,8 @@ describe('GET /api/contacts', () => {
     });
 
     it('should be able to search contact using phone', async () => {
-        const response = await supertest(web)
-            .get("/api/contacts")
+        const response = await supertest(app)
+            .get("/api/v1/contacts")
             .query({
                 phone: "99"
             })
@@ -247,8 +250,8 @@ describe('GET /api/contacts', () => {
     });
 
     it('should be able to search contact no result', async () => {
-        const response = await supertest(web)
-            .get("/api/contacts")
+        const response = await supertest(app)
+            .get("/api/v1/contacts")
             .query({
                 name: "salah"
             })
@@ -263,8 +266,8 @@ describe('GET /api/contacts', () => {
     });
 
     it('should be able to search contact with paging', async () => {
-        const response = await supertest(web)
-            .get("/api/contacts")
+        const response = await supertest(app)
+            .get("/api/v1/contacts")
             .query({
                 page: 2,
                 size: 1
