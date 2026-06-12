@@ -31,7 +31,7 @@ graph TB
     end
 
     MW -->|/api/v1/metrics<br/>pull scrape| P
-    RL -->|stdout logs<br/>push via Loki API| AL
+    RL -->|stdout logs<br/>scraped by Alloy via Docker socket| AL
     AL -->|forward logs| L
     AL -->|forward traces OTLP| T
 
@@ -171,7 +171,7 @@ Default metrics dari `prom-client` yang expose Node.js runtime metrics.
 | Service | Retention | Config |
 |---------|----------|--------|
 | Prometheus | 15 hari | `--storage.tsdb.retention.time=15d` |
-| Loki | Default (bisa diubah di loki-config.yml) | `table_manager` |
+| Loki | Default (bisa diubah di loki-config.yml) | `compactor` (Loki 3.x) |
 | Tempo | Default (bisa diubah di tempo.yml) | `compactor` |
 
 ## Cara Menjalankan

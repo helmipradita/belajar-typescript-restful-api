@@ -25,7 +25,7 @@ function authParams(token, name, expectedStatus) {
   return {
     headers: {
       'Content-Type': 'application/json',
-      'X-API-TOKEN': token,
+      'Authorization': `Bearer ${token}`,
     },
     responseCallback: http.expectedStatuses(expectedStatus),
     tags: {name},
@@ -34,7 +34,7 @@ function authParams(token, name, expectedStatus) {
 
 function authOnlyParams(token, name, expectedStatus) {
   return {
-    headers: {'X-API-TOKEN': token},
+    headers: {'Authorization': `Bearer ${token}`},
     responseCallback: http.expectedStatuses(expectedStatus),
     tags: {name},
   };
@@ -71,7 +71,7 @@ export default function () {
   });
 
   group('Register user', function () {
-    const res = http.post(`${BASE_URL}/api/users`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users`, JSON.stringify({
       username,
       password,
       name: `Func ${id}`,
@@ -84,7 +84,7 @@ export default function () {
   });
 
   group('Duplicate user', function () {
-    const res = http.post(`${BASE_URL}/api/users`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users`, JSON.stringify({
       username,
       password,
       name: `Func ${id}`,
@@ -97,7 +97,7 @@ export default function () {
   });
 
   group('Wrong password login', function () {
-    const res = http.post(`${BASE_URL}/api/users/login`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users/login`, JSON.stringify({
       username,
       password: 'wrong-password',
     }), jsonParams('WrongLogin', 401));
@@ -108,7 +108,7 @@ export default function () {
   });
 
   group('Missing token', function () {
-    const res = http.get(`${BASE_URL}/api/users/current`, {
+    const res = http.get(`${BASE_URL}/api/v1/users/current`, {
       responseCallback: http.expectedStatuses(401),
       tags: {name: 'MissingToken'},
     });
@@ -119,8 +119,8 @@ export default function () {
   });
 
   group('Invalid token', function () {
-    const res = http.get(`${BASE_URL}/api/users/current`, {
-      headers: {'X-API-TOKEN': 'invalid-token-value'},
+    const res = http.get(`${BASE_URL}/api/v1/users/current`, {
+      headers: {'Authorization': 'Bearer invalid-token-value'},
       responseCallback: http.expectedStatuses(401),
       tags: {name: 'InvalidToken'},
     });
@@ -131,18 +131,18 @@ export default function () {
   });
 
   group('Login user', function () {
-    const res = http.post(`${BASE_URL}/api/users/login`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users/login`, JSON.stringify({
       username,
       password,
     }), jsonParams('LoginUser', 200));
 
     const ok = check(res, {
       'login status is 200': (r) => r.status === 200,
-      'login has token': (r) => r.json('data.token') !== undefined,
+      'login has token': (r) => r.json('data.access_token') !== undefined,
     });
 
     if (ok) {
-      token = res.json('data.token');
+      token = res.json('data.access_token');
     }
   });
 
@@ -151,7 +151,7 @@ export default function () {
   }
 
   group('Get current user', function () {
-    const res = http.get(`${BASE_URL}/api/users/current`, authOnlyParams(token, 'GetCurrentUser', 200));
+    const res = http.get(`${BASE_URL}/api/v1/users/current`, authOnlyParams(token, 'GetCurrentUser', 200));
 
     check(res, {
       'get current user status is 200': (r) => r.status === 200,
@@ -161,7 +161,7 @@ export default function () {
 
   group('Update current user', function () {
     const updatedName = `Func Updated ${id}`;
-    const res = http.patch(`${BASE_URL}/api/users/current`, JSON.stringify({
+    const res = http.patch(`${BASE_URL}/api/v1/users/current`, JSON.stringify({
       name: updatedName,
     }), authParams(token, 'UpdateCurrentUser', 200));
 
@@ -172,7 +172,7 @@ export default function () {
   });
 
   group('Contact not found', function () {
-    const res = http.get(`${BASE_URL}/api/contacts/${MISSING_ID}`, authOnlyParams(token, 'ContactNotFound', 404));
+    const res = http.get(`${BASE_URL}/api/v1/contacts/${MISSING_ID}`, authOnlyParams(token, 'ContactNotFound', 404));
 
     check(res, {
       'contact not found status is 404': (r) => r.status === 404,
@@ -180,7 +180,7 @@ export default function () {
   });
 
   group('Create contact', function () {
-    const res = http.post(`${BASE_URL}/api/contacts`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/contacts`, JSON.stringify({
       first_name: 'Functional',
       last_name: 'Test',
       email: `${username}@example.com`,
@@ -199,7 +199,7 @@ export default function () {
 
   if (contactId) {
     group('Get contact', function () {
-      const res = http.get(`${BASE_URL}/api/contacts/${contactId}`, authOnlyParams(token, 'GetContact', 200));
+      const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}`, authOnlyParams(token, 'GetContact', 200));
 
       check(res, {
         'get contact status is 200': (r) => r.status === 200,
@@ -208,7 +208,7 @@ export default function () {
     });
 
     group('Update contact', function () {
-      const res = http.put(`${BASE_URL}/api/contacts/${contactId}`, JSON.stringify({
+      const res = http.put(`${BASE_URL}/api/v1/contacts/${contactId}`, JSON.stringify({
         first_name: 'FuncUpdated',
         last_name: 'TestUpdated',
         email: `${username}.updated@example.com`,
@@ -222,7 +222,7 @@ export default function () {
     });
 
     group('Search contacts', function () {
-      const res = http.get(`${BASE_URL}/api/contacts?name=FuncUpdated&page=1&size=10`, authOnlyParams(token, 'SearchContacts', 200));
+      const res = http.get(`${BASE_URL}/api/v1/contacts?name=FuncUpdated&page=1&size=10`, authOnlyParams(token, 'SearchContacts', 200));
 
       check(res, {
         'search contacts status is 200': (r) => r.status === 200,
@@ -232,7 +232,7 @@ export default function () {
     });
 
     group('Address not found', function () {
-      const res = http.get(`${BASE_URL}/api/contacts/${contactId}/addresses/${MISSING_ID}`, authOnlyParams(token, 'AddressNotFound', 404));
+      const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${MISSING_ID}`, authOnlyParams(token, 'AddressNotFound', 404));
 
       check(res, {
         'address not found status is 404': (r) => r.status === 404,
@@ -240,7 +240,7 @@ export default function () {
     });
 
     group('Create address', function () {
-      const res = http.post(`${BASE_URL}/api/contacts/${contactId}/addresses`, JSON.stringify({
+      const res = http.post(`${BASE_URL}/api/v1/contacts/${contactId}/addresses`, JSON.stringify({
         street: 'Jalan Functional',
         city: 'Jakarta',
         province: 'DKI Jakarta',
@@ -260,7 +260,7 @@ export default function () {
 
     if (addressId) {
       group('Get address', function () {
-        const res = http.get(`${BASE_URL}/api/contacts/${contactId}/addresses/${addressId}`, authOnlyParams(token, 'GetAddress', 200));
+        const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${addressId}`, authOnlyParams(token, 'GetAddress', 200));
 
         check(res, {
           'get address status is 200': (r) => r.status === 200,
@@ -269,7 +269,7 @@ export default function () {
       });
 
       group('Update address', function () {
-        const res = http.put(`${BASE_URL}/api/contacts/${contactId}/addresses/${addressId}`, JSON.stringify({
+        const res = http.put(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${addressId}`, JSON.stringify({
           street: 'Jalan Functional Updated',
           city: 'Bandung',
           province: 'Jawa Barat',
@@ -284,7 +284,7 @@ export default function () {
       });
 
       group('List addresses', function () {
-        const res = http.get(`${BASE_URL}/api/contacts/${contactId}/addresses`, authOnlyParams(token, 'ListAddresses', 200));
+        const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}/addresses`, authOnlyParams(token, 'ListAddresses', 200));
 
         check(res, {
           'list addresses status is 200': (r) => r.status === 200,
@@ -293,7 +293,7 @@ export default function () {
       });
 
       group('Delete address', function () {
-        const res = http.del(`${BASE_URL}/api/contacts/${contactId}/addresses/${addressId}`, null, authOnlyParams(token, 'DeleteAddress', 200));
+        const res = http.del(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${addressId}`, null, authOnlyParams(token, 'DeleteAddress', 200));
 
         check(res, {
           'delete address status is 200': (r) => r.status === 200,
@@ -303,7 +303,7 @@ export default function () {
     }
 
     group('Delete contact', function () {
-      const res = http.del(`${BASE_URL}/api/contacts/${contactId}`, null, authOnlyParams(token, 'DeleteContact', 200));
+      const res = http.del(`${BASE_URL}/api/v1/contacts/${contactId}`, null, authOnlyParams(token, 'DeleteContact', 200));
 
       check(res, {
         'delete contact status is 200': (r) => r.status === 200,
@@ -313,7 +313,7 @@ export default function () {
   }
 
   group('Logout user', function () {
-    const res = http.del(`${BASE_URL}/api/users/current`, null, authOnlyParams(token, 'LogoutUser', 200));
+    const res = http.del(`${BASE_URL}/api/v1/users/current`, null, authOnlyParams(token, 'LogoutUser', 200));
 
     check(res, {
       'logout status is 200': (r) => r.status === 200,

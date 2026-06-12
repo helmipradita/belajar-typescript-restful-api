@@ -1,5 +1,7 @@
 # Contact API Spec
 
+> **Catatan:** Parameter `:id` hanya menerima nilai numerik (angka). Request dengan parameter non-numerik akan menghasilkan 404.
+
 ## Create Contact
 
 Endpoint : POST /api/v1/contacts

@@ -1,8 +1,10 @@
 # Address API Spec
 
+> **Catatan:** Parameter `:contactId` dan `:addressId` hanya menerima nilai numerik (angka). Request dengan parameter non-numerik akan menghasilkan 404.
+
 ## Create Address
 
-Endpoint : POST /api/v1/contacts/:idContact/addresses
+Endpoint : POST /api/v1/contacts/:contactId/addresses
 
 Response Status : **201 Created**
 
@@ -50,7 +52,7 @@ Response Body (Failed — Contact Not Found) :
 
 ## Get Address
 
-Endpoint : GET /api/v1/contacts/:idContact/addresses/:idAddress
+Endpoint : GET /api/v1/contacts/:contactId/addresses/:addressId
 
 Response Status : **200 OK**
 
@@ -80,7 +82,7 @@ Response Body (Failed) :
 
 ## Update Address
 
-Endpoint : PUT /api/v1/contacts/:idContact/addresses/:idAddress
+Endpoint : PUT /api/v1/contacts/:contactId/addresses/:addressId
 
 Response Status : **200 OK**
 
@@ -114,7 +116,7 @@ Response Body (Success) :
 
 ## Remove Address
 
-Endpoint : DELETE /api/v1/contacts/:idContact/addresses/:idAddress
+Endpoint : DELETE /api/v1/contacts/:contactId/addresses/:addressId
 
 Response Status : **200 OK**
 
@@ -137,7 +139,7 @@ Response Body (Failed) :
 
 ## List Address
 
-Endpoint : GET /api/v1/contacts/:idContact/addresses?page=1&size=10
+Endpoint : GET /api/v1/contacts/:contactId/addresses?page=1&size=10
 
 Response Status : **200 OK**
 

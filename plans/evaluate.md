@@ -1,8 +1,8 @@
-# Evaluasi Codebase — `final-belajar-typescript-restful-api`
+# Evaluasi Codebase — `belajar-typescript-restful-api`
 
 ## 1. ARSITEKTUR & POLA
 
-**Layer pattern** bersih: `route → controller → service → model/validation → Prisma`. Express Router dipisah antara public (`public-api.ts`) dan authenticated (`api.ts`) via `authMiddleware`. Middleware pipeline rapi: `requestId → requestLogger → metrics → routes → errorHandler`.
+**Layer pattern** bersih: `route → controller → service → model/validation → Prisma`. Express Router dipisah antara public (`public-api.ts`) dan authenticated (`api.ts`) via `authMiddleware`. Middleware pipeline rapi: `requestId → requestLogger → metrics → compression → cors → routes → errorHandler`.
 
 ## 2. DATABASE (Prisma + MySQL)
 
@@ -30,7 +30,7 @@ Semua input tervalidasi (register, login, update user, contact CRUD, address CRU
 - **Grafana** — dashboard Prometheus + Loki + Tempo (port 4000)
 - **Loki** — log aggregation
 - **Tempo** — distributed tracing (OTLP via Alloy)
-- **Alloy** — OTel collector
+- **Alloy** — OTel collector (Docker socket → Loki)
 - **3 k6 scripts** — load-test.js, error-test.js, functional-test.js
 
 ## 6. METRICS
@@ -39,7 +39,7 @@ Semua input tervalidasi (register, login, update user, contact CRUD, address CRU
 
 ## 7. LOGGING
 
-Winston JSON ke stdout, di-collect Alloy → Loki. Setiap request log: request_id, method, path, status, latency.
+Winston JSON ke stdout + file (daily rotation, 14d retention), di-collect Alloy → Loki. Setiap request log: request_id, method, path, status, latency.
 
 ## 8. ERROR HANDLING
 
@@ -66,7 +66,11 @@ Winston JSON ke stdout, di-collect Alloy → Loki. Setiap request log: request_i
 - Pagination Address List
 - Unique Constraint Token
 - Trace-Log Correlation (OpenTelemetry → Tempo)
-- Request Body Size Limit (1mb)
+- Request Body Size Limit via `BODY_LIMIT` env
+- Response compression (gzip)
+- CORS dengan configurable origin via `CORS_ORIGIN` env
+- File logging dengan daily rotation + 14d retention
+- Husky + lint-staged pre-commit (tsc --noEmit)
 - Dockerfile optimized (2 stage, single npm ci)
 - Post Create → 201
 - Production Error Detail Hide (NODE_ENV)
@@ -81,6 +85,9 @@ Winston JSON ke stdout, di-collect Alloy → Loki. Setiap request log: request_i
 - Rate limiting (belum prioritas)
 - Contact search single query optimization
 - Prisma query log privacy
+- PM2 cluster mode (scaling level 2)
+- Horizontal scale multi-container + Nginx (scaling level 3)
+- Redis in-memory cache (refresh tokens + search)
 
 ## 12. PERFORMANCE BOTTLENECKS
 
@@ -91,3 +98,15 @@ Winston JSON ke stdout, di-collect Alloy → Loki. Setiap request log: request_i
 | Auth query | Refresh token masih query DB |
 | No in-memory cache | Tidak ada Redis |
 | Search 2 queries | findMany + count terpisah |
+
+## 13. ENHANCEMENT SUGGESTIONS
+
+| # | Enhancement | Package | Alasan |
+|---|-------------|---------|--------|
+| 1 | Security headers | `helmet` | Security headers (XSS, CSP, dll) — standar production API |
+| 2 | API Docs (Swagger/OpenAPI) | `swagger-jsdoc` + `swagger-ui-express` | Dokumentasi interaktif, auto-sync dengan code |
+| 3 | CI/CD GitHub Actions | — | Auto lint, test, build, deploy tiap push |
+| 4 | Response validation | Zod output schema | Safety net biar response sesuai kontrak |
+| 5 | Error tracking | `@sentry/node` | Capture error production, traceability |
+| 6 | Caching (Redis) | `redis` / `ioredis` | Cache refresh tokens + search results, kurangi DB load |
+| 7 | PM2 ecosystem file | `pm2` | Multi-process, auto-restart, zero-downtime |

@@ -25,7 +25,7 @@ function authParams(token, name, expectedStatus) {
   return {
     headers: {
       'Content-Type': 'application/json',
-      'X-API-TOKEN': token,
+      'Authorization': `Bearer ${token}`,
     },
     responseCallback: http.expectedStatuses(expectedStatus),
     tags: {name},
@@ -34,7 +34,7 @@ function authParams(token, name, expectedStatus) {
 
 function authOnlyParams(token, name, expectedStatus) {
   return {
-    headers: {'X-API-TOKEN': token},
+    headers: {'Authorization': `Bearer ${token}`},
     responseCallback: http.expectedStatuses(expectedStatus),
     tags: {name},
   };
@@ -49,7 +49,7 @@ export default function () {
   let addressId = null;
 
   group('Seed valid user', function () {
-    const res = http.post(`${BASE_URL}/api/users`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users`, JSON.stringify({
       username,
       password,
       name: `K6 Error ${suffix}`,
@@ -59,7 +59,7 @@ export default function () {
   });
 
   group('Duplicate user', function () {
-    const res = http.post(`${BASE_URL}/api/users`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users`, JSON.stringify({
       username,
       password,
       name: `K6 Error ${suffix}`,
@@ -69,7 +69,7 @@ export default function () {
   });
 
   group('Wrong login', function () {
-    const res = http.post(`${BASE_URL}/api/users/login`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users/login`, JSON.stringify({
       username,
       password: 'wrong-password',
     }), jsonParams('WrongLogin', 401));
@@ -78,7 +78,7 @@ export default function () {
   });
 
   group('Missing token', function () {
-    const res = http.get(`${BASE_URL}/api/users/current`, {
+    const res = http.get(`${BASE_URL}/api/v1/users/current`, {
       responseCallback: http.expectedStatuses(401),
       tags: {name: 'MissingToken'},
     });
@@ -87,24 +87,24 @@ export default function () {
   });
 
   group('Invalid token', function () {
-    const res = http.get(`${BASE_URL}/api/users/current`, authOnlyParams('invalid-token', 'InvalidToken', 401));
+    const res = http.get(`${BASE_URL}/api/v1/users/current`, authOnlyParams('invalid-token', 'InvalidToken', 401));
 
     check(res, {'invalid token status is 401': (r) => r.status === 401});
   });
 
   group('Login valid user', function () {
-    const res = http.post(`${BASE_URL}/api/users/login`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/users/login`, JSON.stringify({
       username,
       password,
     }), jsonParams('LoginValidUserForErrorTest', 200));
 
     const ok = check(res, {
       'valid login status is 200': (r) => r.status === 200,
-      'valid login has token': (r) => r.json('data.token') !== undefined,
+      'valid login has token': (r) => r.json('data.access_token') !== undefined,
     });
 
     if (ok) {
-      token = res.json('data.token');
+      token = res.json('data.access_token');
     }
   });
 
@@ -113,7 +113,7 @@ export default function () {
   }
 
   group('Invalid contact body', function () {
-    const res = http.post(`${BASE_URL}/api/contacts`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/contacts`, JSON.stringify({
       first_name: '',
       last_name: '',
       email: 'not-an-email',
@@ -124,13 +124,13 @@ export default function () {
   });
 
   group('Contact not found', function () {
-    const res = http.get(`${BASE_URL}/api/contacts/${MISSING_ID}`, authOnlyParams(token, 'ContactNotFound', 404));
+    const res = http.get(`${BASE_URL}/api/v1/contacts/${MISSING_ID}`, authOnlyParams(token, 'ContactNotFound', 404));
 
     check(res, {'contact not found status is 404': (r) => r.status === 404});
   });
 
   group('Seed valid contact', function () {
-    const res = http.post(`${BASE_URL}/api/contacts`, JSON.stringify({
+    const res = http.post(`${BASE_URL}/api/v1/contacts`, JSON.stringify({
       first_name: 'Error',
       last_name: 'Scenario',
       email: `${username}@example.com`,
@@ -149,7 +149,7 @@ export default function () {
 
   if (contactId) {
     group('Invalid address body', function () {
-      const res = http.post(`${BASE_URL}/api/contacts/${contactId}/addresses`, JSON.stringify({
+      const res = http.post(`${BASE_URL}/api/v1/contacts/${contactId}/addresses`, JSON.stringify({
         street: 'Jalan Error',
         city: 'Jakarta',
         province: 'DKI Jakarta',
@@ -161,13 +161,13 @@ export default function () {
     });
 
     group('Address not found', function () {
-      const res = http.get(`${BASE_URL}/api/contacts/${contactId}/addresses/${MISSING_ID}`, authOnlyParams(token, 'AddressNotFound', 404));
+      const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${MISSING_ID}`, authOnlyParams(token, 'AddressNotFound', 404));
 
       check(res, {'address not found status is 404': (r) => r.status === 404});
     });
 
     group('Seed valid address', function () {
-      const res = http.post(`${BASE_URL}/api/contacts/${contactId}/addresses`, JSON.stringify({
+      const res = http.post(`${BASE_URL}/api/v1/contacts/${contactId}/addresses`, JSON.stringify({
         street: 'Jalan Cleanup',
         city: 'Jakarta',
         province: 'DKI Jakarta',
@@ -187,21 +187,21 @@ export default function () {
 
     if (addressId) {
       group('Cleanup address', function () {
-        const res = http.del(`${BASE_URL}/api/contacts/${contactId}/addresses/${addressId}`, null, authOnlyParams(token, 'CleanupAddress', 200));
+        const res = http.del(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${addressId}`, null, authOnlyParams(token, 'CleanupAddress', 200));
 
         check(res, {'cleanup address status is 200': (r) => r.status === 200});
       });
     }
 
     group('Cleanup contact', function () {
-      const res = http.del(`${BASE_URL}/api/contacts/${contactId}`, null, authOnlyParams(token, 'CleanupContact', 200));
+      const res = http.del(`${BASE_URL}/api/v1/contacts/${contactId}`, null, authOnlyParams(token, 'CleanupContact', 200));
 
       check(res, {'cleanup contact status is 200': (r) => r.status === 200});
     });
   }
 
   group('Cleanup logout', function () {
-    const res = http.del(`${BASE_URL}/api/users/current`, null, authOnlyParams(token, 'CleanupLogout', 200));
+    const res = http.del(`${BASE_URL}/api/v1/users/current`, null, authOnlyParams(token, 'CleanupLogout', 200));
 
     check(res, {'cleanup logout status is 200': (r) => r.status === 200});
   });

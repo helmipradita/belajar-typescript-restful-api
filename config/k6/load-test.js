@@ -26,7 +26,7 @@ function authParams(token, name) {
   return {
     headers: {
       'Content-Type': 'application/json',
-      'X-API-TOKEN': token,
+      'Authorization': `Bearer ${token}`,
     },
     tags: {name},
   };
@@ -34,7 +34,7 @@ function authParams(token, name) {
 
 function authOnlyParams(token, name) {
   return {
-    headers: {'X-API-TOKEN': token},
+    headers: {'Authorization': `Bearer ${token}`},
     tags: {name},
   };
 }
@@ -43,23 +43,23 @@ export function setup() {
   const username = `k6-cleanup-${Date.now()}`;
   const password = 'cleanup123';
 
-  http.post(`${BASE_URL}/api/users`, JSON.stringify({
+  http.post(`${BASE_URL}/api/v1/users`, JSON.stringify({
     username,
     password,
     name: 'K6 Cleanup',
   }), jsonParams('SetupUser'));
 
-  const loginRes = http.post(`${BASE_URL}/api/users/login`, JSON.stringify({
+  const loginRes = http.post(`${BASE_URL}/api/v1/users/login`, JSON.stringify({
     username,
     password,
   }), jsonParams('SetupLogin'));
 
-  return {cleanupUser: username, cleanupToken: loginRes.json('data.token')};
+  return {cleanupUser: username, cleanupToken: loginRes.json('data.access_token')};
 }
 
 export function teardown(data) {
   if (data.cleanupToken) {
-    http.del(`${BASE_URL}/api/users/current`, null,
+    http.del(`${BASE_URL}/api/v1/users/current`, null,
       authOnlyParams(data.cleanupToken, 'TeardownLogout'));
   }
 }
@@ -74,7 +74,7 @@ export default function () {
 
   try {
     group('Register user', function () {
-      const res = http.post(`${BASE_URL}/api/users`, JSON.stringify({
+      const res = http.post(`${BASE_URL}/api/v1/users`, JSON.stringify({
         username,
         password,
         name: `K6 ${suffix}`,
@@ -87,18 +87,18 @@ export default function () {
     });
 
     group('Login user', function () {
-      const res = http.post(`${BASE_URL}/api/users/login`, JSON.stringify({
+      const res = http.post(`${BASE_URL}/api/v1/users/login`, JSON.stringify({
         username,
         password,
       }), jsonParams('LoginUser'));
 
       const ok = check(res, {
         'login status is 200': (r) => r.status === 200,
-        'login has token': (r) => r.json('data.token') !== undefined,
+        'login has token': (r) => r.json('data.access_token') !== undefined,
       });
 
       if (ok) {
-        token = res.json('data.token');
+        token = res.json('data.access_token');
       }
     });
 
@@ -107,7 +107,7 @@ export default function () {
     }
 
     group('Get current user', function () {
-      const res = http.get(`${BASE_URL}/api/users/current`, authOnlyParams(token, 'GetCurrentUser'));
+      const res = http.get(`${BASE_URL}/api/v1/users/current`, authOnlyParams(token, 'GetCurrentUser'));
 
       check(res, {
         'current user status is 200': (r) => r.status === 200,
@@ -117,7 +117,7 @@ export default function () {
 
     group('Update current user', function () {
       const updatedName = `K6 Updated ${suffix}`;
-      const res = http.patch(`${BASE_URL}/api/users/current`, JSON.stringify({
+      const res = http.patch(`${BASE_URL}/api/v1/users/current`, JSON.stringify({
         name: updatedName,
       }), authParams(token, 'UpdateCurrentUser'));
 
@@ -128,7 +128,7 @@ export default function () {
     });
 
     group('Create contact', function () {
-      const res = http.post(`${BASE_URL}/api/contacts`, JSON.stringify({
+      const res = http.post(`${BASE_URL}/api/v1/contacts`, JSON.stringify({
         first_name: 'Load',
         last_name: 'Test',
         email: `${username}@example.com`,
@@ -147,7 +147,7 @@ export default function () {
 
     if (contactId) {
       group('Get contact', function () {
-        const res = http.get(`${BASE_URL}/api/contacts/${contactId}`, authOnlyParams(token, 'GetContact'));
+        const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}`, authOnlyParams(token, 'GetContact'));
 
         check(res, {
           'get contact status is 200': (r) => r.status === 200,
@@ -156,7 +156,7 @@ export default function () {
       });
 
       group('Update contact', function () {
-        const res = http.put(`${BASE_URL}/api/contacts/${contactId}`, JSON.stringify({
+        const res = http.put(`${BASE_URL}/api/v1/contacts/${contactId}`, JSON.stringify({
           first_name: 'LoadUpdated',
           last_name: 'TestUpdated',
           email: `${username}.updated@example.com`,
@@ -170,7 +170,7 @@ export default function () {
       });
 
       group('Search contacts', function () {
-        const res = http.get(`${BASE_URL}/api/contacts?name=LoadUpdated&page=1&size=10`, authOnlyParams(token, 'SearchContacts'));
+        const res = http.get(`${BASE_URL}/api/v1/contacts?name=LoadUpdated&page=1&size=10`, authOnlyParams(token, 'SearchContacts'));
 
         check(res, {
           'search contacts status is 200': (r) => r.status === 200,
@@ -180,7 +180,7 @@ export default function () {
       });
 
       group('Create address', function () {
-        const res = http.post(`${BASE_URL}/api/contacts/${contactId}/addresses`, JSON.stringify({
+        const res = http.post(`${BASE_URL}/api/v1/contacts/${contactId}/addresses`, JSON.stringify({
           street: 'Jalan K6',
           city: 'Jakarta',
           province: 'DKI Jakarta',
@@ -200,7 +200,7 @@ export default function () {
 
       if (addressId) {
         group('Get address', function () {
-          const res = http.get(`${BASE_URL}/api/contacts/${contactId}/addresses/${addressId}`, authOnlyParams(token, 'GetAddress'));
+          const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${addressId}`, authOnlyParams(token, 'GetAddress'));
 
           check(res, {
             'get address status is 200': (r) => r.status === 200,
@@ -209,7 +209,7 @@ export default function () {
         });
 
         group('Update address', function () {
-          const res = http.put(`${BASE_URL}/api/contacts/${contactId}/addresses/${addressId}`, JSON.stringify({
+          const res = http.put(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${addressId}`, JSON.stringify({
             street: 'Jalan K6 Updated',
             city: 'Bandung',
             province: 'Jawa Barat',
@@ -224,7 +224,7 @@ export default function () {
         });
 
         group('List addresses', function () {
-          const res = http.get(`${BASE_URL}/api/contacts/${contactId}/addresses`, authOnlyParams(token, 'ListAddresses'));
+          const res = http.get(`${BASE_URL}/api/v1/contacts/${contactId}/addresses`, authOnlyParams(token, 'ListAddresses'));
 
           check(res, {
             'list addresses status is 200': (r) => r.status === 200,
@@ -235,15 +235,15 @@ export default function () {
     }
   } finally {
     if (addressId) {
-      http.del(`${BASE_URL}/api/contacts/${contactId}/addresses/${addressId}`, null,
+      http.del(`${BASE_URL}/api/v1/contacts/${contactId}/addresses/${addressId}`, null,
         authOnlyParams(token, 'CleanupAddress'));
     }
     if (contactId) {
-      http.del(`${BASE_URL}/api/contacts/${contactId}`, null,
+      http.del(`${BASE_URL}/api/v1/contacts/${contactId}`, null,
         authOnlyParams(token, 'CleanupContact'));
     }
     if (token) {
-      http.del(`${BASE_URL}/api/users/current`, null,
+      http.del(`${BASE_URL}/api/v1/users/current`, null,
         authOnlyParams(token, 'CleanupLogout'));
     }
   }

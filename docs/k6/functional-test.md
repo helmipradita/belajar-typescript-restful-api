@@ -2,7 +2,7 @@
 
 ## Penjelasan
 
-Functional test ini menguji **semua 18 endpoint** API secara komprehensif, mencakup baik response sukses (2xx) maupun error (4xx). Setiap iterasi menjalankan lifecycle lengkap satu user dari register sampai logout, termasuk pengujian edge case di tengah-tengah.
+Functional test ini menguji **semua 23 endpoint** API secara komprehensif, mencakup baik response sukses (2xx) maupun error (4xx). Setiap iterasi menjalankan lifecycle lengkap satu user dari register sampai logout, termasuk pengujian edge case di tengah-tengah.
 
 **Karakteristik:**
 - **Jenis:** Functional / Correctness Test
