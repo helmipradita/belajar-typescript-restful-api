@@ -37,6 +37,6 @@ export function toContactResponse(contact: Contact): ContactResponse {
         first_name: contact.first_name,
         last_name: contact.last_name,
         email: contact.email,
-        phone: contact.phone
+        phone: contact.phone,
     }
 }

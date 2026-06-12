@@ -1,8 +1,8 @@
-import {UserRequest} from "../type/user-request";
+import {UserRequest} from "../types/user-request";
 import {Response, NextFunction} from "express";
-import {CreateContactRequest, SearchContactRequest, UpdateContactRequest} from "../model/contact-model";
-import {ContactService} from "../service/contact-service";
-import {logger} from "../application/logging";
+import {CreateContactRequest, SearchContactRequest, UpdateContactRequest} from "../models/contact-model";
+import {ContactService} from "../services/contact-service";
+import {HTTP, MESSAGE} from "../config/constants";
 
 export class ContactController {
 
@@ -10,8 +10,7 @@ export class ContactController {
         try {
             const request: CreateContactRequest = req.body as CreateContactRequest;
             const response = await ContactService.create(req.user!, request);
-            logger.debug("response : " + JSON.stringify(response));
-            res.status(200).json({
+            res.status(HTTP.CREATED).json({
                 data: response
             });
         } catch (e) {
@@ -23,8 +22,7 @@ export class ContactController {
         try {
             const contactId = Number(req.params.contactId);
             const response = await ContactService.get(req.user!, contactId);
-            logger.debug("response : " + JSON.stringify(response));
-            res.status(200).json({
+            res.status(HTTP.OK).json({
                 data: response
             });
         } catch (e) {
@@ -34,12 +32,13 @@ export class ContactController {
 
     static async update(req: UserRequest, res: Response, next: NextFunction) {
         try {
-            const request: UpdateContactRequest = req.body as UpdateContactRequest;
-            request.id = Number(req.params.contactId);
+            const request: UpdateContactRequest = {
+                ...req.body,
+                id: Number(req.params.contactId)
+            };
 
             const response = await ContactService.update(req.user!, request);
-            logger.debug("response : " + JSON.stringify(response));
-            res.status(200).json({
+            res.status(HTTP.OK).json({
                 data: response
             });
         } catch (e) {
@@ -50,10 +49,9 @@ export class ContactController {
     static async remove(req: UserRequest, res: Response, next: NextFunction) {
         try {
             const contactId = Number(req.params.contactId);
-            const response = await ContactService.remove(req.user!, contactId);
-            logger.debug("response : " + JSON.stringify(response));
-            res.status(200).json({
-                data: "OK"
+            await ContactService.remove(req.user!, contactId);
+            res.status(HTTP.OK).json({
+                data: MESSAGE.OK
             });
         } catch (e) {
             next(e);
@@ -70,8 +68,7 @@ export class ContactController {
                 size: req.query.size ? Number(req.query.size) : 10,
             }
             const response = await ContactService.search(req.user!, request);
-            logger.debug("response : " + JSON.stringify(response));
-            res.status(200).json(response);
+            res.status(HTTP.OK).json(response);
         } catch (e) {
             next(e);
         }

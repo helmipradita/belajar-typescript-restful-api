@@ -35,6 +35,12 @@ export type UpdateAddressRequest = {
 
 export type RemoveAddressRequest = GetAddressRequest
 
+export type ListAddressRequest = {
+    contact_id: number;
+    page: number;
+    size: number;
+}
+
 export function toAddressResponse(address: Address): AddressResponse{
     return {
         id: address.id,

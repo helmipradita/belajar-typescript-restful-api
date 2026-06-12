@@ -18,4 +18,8 @@ export class UserValidation {
         name: z.string().min(1).max(100).optional()
     });
 
+    static readonly REFRESH: ZodType = z.object({
+        refresh_token: z.string().min(1).max(100)
+    });
+
 }
