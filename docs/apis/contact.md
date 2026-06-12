@@ -2,13 +2,14 @@
 
 ## Create Contact
 
-Endpoint : POST /api/contacts
+Endpoint : POST /api/v1/contacts
+
+Response Status : **201 Created**
 
 Request Header :
-- X-API-TOKEN : token
+- Authorization: Bearer \<jwt-token\>
 
 Request Body :
-
 ```json
 {
   "first_name" : "Eko Kurniawan",
@@ -19,7 +20,6 @@ Request Body :
 ```
 
 Response Body (Success) :
-
 ```json
 {
   "data" : {
@@ -32,23 +32,23 @@ Response Body (Success) :
 }
 ```
 
-Response Body (Failed) :
-
+Response Body (Failed — Validation) :
 ```json
 {
-  "errors" : "first_name must not blank, ..."
+  "errors" : [{"path": "first_name", "message": "String must contain at least 1 character(s)"}]
 }
 ```
 
 ## Get Contact
 
-Endpoint : GET /api/contacts/:id
+Endpoint : GET /api/v1/contacts/:id
+
+Response Status : **200 OK**
 
 Request Header :
-- X-API-TOKEN : token
+- Authorization: Bearer \<jwt-token\>
 
 Response Body (Success) :
-
 ```json
 {
   "data" : {
@@ -62,22 +62,22 @@ Response Body (Success) :
 ```
 
 Response Body (Failed) :
-
 ```json
 {
-  "errors" : "Contact is not found"
+  "errors" : [{"message": "Contact not found"}]
 }
 ```
 
 ## Update Contact
 
-Endpoint : PUT /api/contacts/:id
+Endpoint : PUT /api/v1/contacts/:id
+
+Response Status : **200 OK**
 
 Request Header :
-- X-API-TOKEN : token
+- Authorization: Bearer \<jwt-token\>
 
 Request Body :
-
 ```json
 {
   "first_name" : "Eko Kurniawan",
@@ -88,7 +88,6 @@ Request Body :
 ```
 
 Response Body (Success) :
-
 ```json
 {
   "data" : {
@@ -101,23 +100,16 @@ Response Body (Success) :
 }
 ```
 
-Response Body (Failed) :
-
-```json
-{
-  "errors" : "first_name must not blank, ..."
-}
-```
-
 ## Remove Contact
 
-Endpoint : DELETE /api/contacts/:id
+Endpoint : DELETE /api/v1/contacts/:id
+
+Response Status : **200 OK**
 
 Request Header :
-- X-API-TOKEN : token
+- Authorization: Bearer \<jwt-token\>
 
 Response Body (Success) :
-
 ```json
 {
   "data" : "OK"
@@ -125,41 +117,34 @@ Response Body (Success) :
 ```
 
 Response Body (Failed) :
-
 ```json
 {
-  "errors" : "Contact is not found"
+  "errors" : [{"message": "Contact not found"}]
 }
 ```
 
 ## Search Contact
 
-Endpoint : GET /api/contacts
+Endpoint : GET /api/v1/contacts
+
+Response Status : **200 OK**
 
 Query Parameter :
-- name : string, contact first name or contact last name, optional
-- phone : string, contact phone, optional
-- email : string, contact email, optional
+- name : string, optional
+- phone : string, optional
+- email : string, optional
 - page : number, default 1
 - size : number, default 10
 
 Request Header :
-- X-API-TOKEN : token
+- Authorization: Bearer \<jwt-token\>
 
 Response Body (Success) :
-
 ```json
 {
   "data" : [
     {
       "id" : 1,
-      "first_name" : "Eko Kurniawan",
-      "last_name" : "Khannedy",
-      "email" : "eko@example.com",
-      "phone" : "089999999"
-    },
-    {
-      "id" : 2,
       "first_name" : "Eko Kurniawan",
       "last_name" : "Khannedy",
       "email" : "eko@example.com",
@@ -175,9 +160,8 @@ Response Body (Success) :
 ```
 
 Response Body (Failed) :
-
 ```json
 {
-  "errors" : "Unauthorized"
+  "errors" : [{"message": "Unauthorized"}]
 }
 ```
