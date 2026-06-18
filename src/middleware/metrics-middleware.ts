@@ -10,7 +10,7 @@ const getRouteLabel = (req: Request): string => {
 };
 
 export const metricsMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    if (req.path === "/metrics") {
+    if (req.path.endsWith("/metrics")) {
         next();
         return;
     }

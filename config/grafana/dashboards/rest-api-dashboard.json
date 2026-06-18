@@ -525,7 +525,7 @@
             "type": "prometheus",
             "uid": "prometheus-ds"
           },
-          "expr": "sum by (route, method, status) (rate(http_requests_total{job=~\"$job\",route=~\"$route\",method=~\"$method\",status=~\"4..|5..\"}[1m]))",
+          "expr": "sum by (route, method, status) (rate(http_requests_total{job=~\"$job\",route=~\"$route\",method=~\"$method\",status=~\"4..|5..\",status!=\"429\"}[1m]))",
           "legendFormat": "{{status}} {{method}} {{route}}",
           "refId": "A"
         }
@@ -632,6 +632,115 @@
     },
     {
       "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "description": "Menampilkan jumlah request yang diblokir oleh rate limiter per detik (semua tier). Jika nilainya > 0, ada endpoint yang melebihi batas rate limit.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 2,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum(rate(rate_limit_blocked_total[1m]))",
+          "legendFormat": "Blocked/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Rate Limit Blocked",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-ds"
+      },
+      "description": "Menampilkan rate limit blocked requests per tier (global, auth, api). Berguna untuk mengidentifikasi tier rate limiter mana yang paling sering memblokir request.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-ds"
+          },
+          "expr": "sum by (tier) (rate(rate_limit_blocked_total[1m]))",
+          "legendFormat": "{{tier}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Rate Limited by Tier",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
         "type": "loki",
         "uid": "loki-ds"
       },
@@ -640,7 +749,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 42
       },
       "id": 12,
       "options": {
@@ -805,6 +914,6 @@
   "timezone": "",
   "title": "TypeScript REST API Monitoring",
   "uid": "typescript-rest-api-monitoring",
-  "version": 5,
+  "version": 8,
   "weekStart": ""
 }

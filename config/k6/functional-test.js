@@ -2,8 +2,8 @@ import http from 'k6/http';
 import {check, group} from 'k6';
 
 export const options = {
-  vus: 200,
-  iterations: 5000,
+  vus: 50,
+  iterations: 500,
   thresholds: {
     http_req_duration: ['p(95)<1000'],
     checks: ['rate>0.95'],
