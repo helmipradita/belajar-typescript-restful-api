@@ -9,10 +9,11 @@ RESTful API dengan TypeScript + Express + Prisma + MySQL, dilengkapi monitoring 
 | Runtime | Node.js + TypeScript |
 | Framework | Express.js |
 | ORM | Prisma (mysql adapter) |
-| Database | MySQL 8.4 |
+| Database | MySQL 8.4 + Redis 7 |
 | Validation | Zod |
 | Logging | Winston |
 | Auth | JWT (Bearer) + UUID refresh token (`X-API-TOKEN` fallback) |
+| Rate Limiting | express-rate-limit + rate-limit-redis (Redis-based 3-tier) |
 | Metrics | prom-client + Prometheus |
 | Monitoring | Grafana, Loki, Tempo, Alloy |
 | Testing | Jest + Supertest (unit/integration), k6 (load/functional) |
@@ -123,7 +124,7 @@ npx prisma migrate status
 ### Docker (Full Stack)
 
 ```bash
-# Start semua service (MySQL + API + Monitoring)
+# Start semua service (MySQL + Redis + API + Monitoring)
 docker compose up -d
 
 # Start termasuk k6 test (pilih salah satu)
@@ -165,7 +166,9 @@ docker compose --profile k6 run --rm k6-functional-test
 | DELETE | `/api/v1/contacts/:id/addresses/:aid` | Delete address |
 | GET | `/api/v1/contacts/:id/addresses` | List addresses (pagination via `?page=&size=`) |
 
-> Detail API spec: [docs/apis/user.md](docs/apis/user.md), [docs/apis/contact.md](docs/apis/contact.md), [docs/apis/address.md](docs/apis/address.md), [docs/monitoring-stack.md](docs/monitoring-stack.md) (monitoring)
+> Detail API spec: [docs/apis/user.md](docs/apis/user.md), [docs/apis/contact.md](docs/apis/contact.md), [docs/apis/address.md](docs/apis/address.md), [docs/monitoring-stack.md](docs/monitoring-stack.md) (monitoring), [docs/rate-limiting.md](docs/rate-limiting.md) (rate limiting)
+
+> **Catatan:** Semua endpoint (kecuali `/healthz`, `/health`, `/metrics`) dilindungi **3-tier rate limiter** berbasis Redis. Response HTTP 429 akan dikembalikan jika melebihi batas. Lihat [docs/rate-limiting.md](docs/rate-limiting.md) untuk detail.
 
 ## Project Structure
 
@@ -253,8 +256,10 @@ Setiap test suite melakukan reset database via `prisma migrate reset --force` un
 | Loki | http://localhost:3100 | - |
 | Tempo | http://localhost:3200 | - |
 | Alloy | http://localhost:12345 | - |
+| Redis | localhost:6379 | - |
 
-> Detail monitoring: [docs/monitoring-stack.md](docs/monitoring-stack.md)
+> Detail monitoring: [docs/monitoring-stack.md](docs/monitoring-stack.md)  
+> Detail rate limiting: [docs/rate-limiting.md](docs/rate-limiting.md)
 
 ## Scripts
 
