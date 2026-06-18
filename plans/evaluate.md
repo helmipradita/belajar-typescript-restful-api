@@ -23,14 +23,14 @@ Semua input tervalidasi (register, login, update user, contact CRUD, address CRU
 
 ## 5. MONITORING STACK
 
-8 service via Docker Compose:
+9 service via Docker Compose:
 - **MySQL 8.4** — database
 - **rest-api** — Express (port host 3030:3000)
-- **Prometheus** — scrape `/api/v1/metrics` tiap 15s
+- **Prometheus** — scrape `/api/v1/metrics`, Alloy, Tempo metrics generator
 - **Grafana** — dashboard Prometheus + Loki + Tempo (port 4000)
-- **Loki** — log aggregation
-- **Tempo** — distributed tracing (OTLP via Alloy)
-- **Alloy** — OTel collector (Docker socket → Loki)
+- **Loki** — log aggregation (30d retention via compactor)
+- **Tempo** — distributed tracing (OTLP via Alloy, 24h block retention)
+- **Alloy** — OTel collector (Docker socket + file logs → Loki, traces → Tempo)
 - **3 k6 scripts** — load-test.js, error-test.js, functional-test.js
 
 ## 6. METRICS
@@ -69,7 +69,7 @@ Winston JSON ke stdout + file (daily rotation, 14d retention), di-collect Alloy 
 - Request Body Size Limit via `BODY_LIMIT` env
 - Response compression (gzip)
 - CORS dengan configurable origin via `CORS_ORIGIN` env
-- File logging dengan daily rotation + 14d retention
+- File logging dengan daily rotation + 14d retention, host volume mount
 - Husky + lint-staged pre-commit (tsc --noEmit)
 - Dockerfile optimized (2 stage, single npm ci)
 - Post Create → 201
@@ -79,12 +79,19 @@ Winston JSON ke stdout + file (daily rotation, 14d retention), di-collect Alloy 
 - Centralized constants (`src/config/constants.ts`): HTTP codes + messages
 - Graceful shutdown (SIGTERM/SIGINT handling)
 - Error logging (unhandledRejection, uncaughtException)
+- Alloy file log scraping (`loki.source.file` for `logs/*.log`)
+- Loki compactor + 30d retention
+- Tempo 24h block retention
+- Prometheus multi-target scraping (rest-api + alloy + tempo)
+- Grafana Logs panel with Loki datasource
+- Grafana dashboard autoprovisioned with Tempo datasource
+- Docker compose volume mount untuk logs/
+- k6 auth fix: X-API-TOKEN → Bearer JWT
 
-## 11. SISA / HOLD
+## 11. SISA / HOLD (BELUM DIIMPLEMENTASIKAN)
 
 - Rate limiting (belum prioritas)
 - Contact search single query optimization
-- Prisma query log privacy
 - PM2 cluster mode (scaling level 2)
 - Horizontal scale multi-container + Nginx (scaling level 3)
 - Redis in-memory cache (refresh tokens + search)
@@ -99,7 +106,7 @@ Winston JSON ke stdout + file (daily rotation, 14d retention), di-collect Alloy 
 | No in-memory cache | Tidak ada Redis |
 | Search 2 queries | findMany + count terpisah |
 
-## 13. ENHANCEMENT SUGGESTIONS
+## 13. ENHANCEMENT SUGGESTIONS (FUTURE)
 
 | # | Enhancement | Package | Alasan |
 |---|-------------|---------|--------|
