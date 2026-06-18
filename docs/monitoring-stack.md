@@ -181,6 +181,7 @@ graph LR
 | Service | Volume Name | Mount Path | Isi Data | Persistent |
 |---------|------------|------------|----------|-----------|
 | MySQL | `typescript-restful-api-mysql-data` | `/var/lib/mysql` | Database tables, user data | Ya |
+| Redis | `redis-data` | `/data` | Rate limit counters, cache | Ya |
 | Prometheus | `prometheus-data` | `/prometheus` | Time-series metrics (15 hari retention) | Ya |
 | Grafana | `grafana-data` | `/var/lib/grafana` | Dashboard config, users, annotations | Ya |
 | Loki | `loki-data` | `/tmp/loki` | Log entries, indexes (30 hari retention) | Ya |

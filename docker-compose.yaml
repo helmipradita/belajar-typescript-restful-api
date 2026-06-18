@@ -24,6 +24,25 @@ services:
     networks:
       - monitoring
 
+  redis:
+    image: redis:7-alpine
+    container_name: typescript-restful-api-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 128M
+    networks:
+      - monitoring
+
   rest-api:
     build:
       context: .
@@ -34,7 +53,9 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: mysql://root:@mysql:3306/belajar_typescript_restful_api?connection_limit=30
+      APP_NAME: belajar-typescript-restful-api
+      DATABASE_URL: mysql://root:@mysql:3306/belajar_typescript_restful_api?connection_limit=50
+      REDIS_URL: redis://redis:6379
       LOG_LEVEL: debug
       JWT_SECRET: rahasia-jwt-belajar-typescript-2024
       JWT_ACCESS_EXPIRES_IN: 15m
@@ -42,6 +63,13 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
       OTEL_SERVICE_NAME: typescript-restful-api
       OTEL_SDK_DISABLED: "false"
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_GLOBAL_MAX: "100"
+      RATE_LIMIT_GLOBAL_WINDOW_MS: "60000"
+      RATE_LIMIT_AUTH_MAX: "15"
+      RATE_LIMIT_AUTH_WINDOW_MS: "60000"
+      RATE_LIMIT_API_MAX: "500"
+      RATE_LIMIT_API_WINDOW_MS: "60000"
     volumes:
       - ./logs:/app/logs
     ports:
@@ -49,11 +77,13 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     deploy:
       resources:
         limits:
-          cpus: "1"
-          memory: 512M
+          cpus: "2"
+          memory: 1G
     networks:
       - monitoring
 
@@ -249,6 +279,8 @@ volumes:
     name: loki-data
   tempo-data:
     name: tempo-data
+  redis-data:
+    name: redis-data
 networks:
   monitoring:
     name: monitoring

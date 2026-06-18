@@ -348,8 +348,9 @@ flowchart LR
         R4["4. requestIdMiddleware<br/>assign x-request-id UUID"] -->
         R5["5. requestLoggerMiddleware<br/>log: method, path, status, latency"] -->
         R6["6. metricsMiddleware<br/>track: counter + histogram"] -->
-        R7["7. Routing<br/>publicRouter / apiRouter"] -->
-        R8["8. errorMiddleware<br/>catch all errors"]
+        R7["7. globalLimiter<br/>rate limit per-IP<br/>skip: healthz/health/metrics"] -->
+        R8["8. Routing<br/>publicRouter / apiRouter"] -->
+        R9["9. errorMiddleware<br/>catch all errors"]
     end
 
     subgraph "Middleware Log Output"
@@ -359,7 +360,7 @@ flowchart LR
     end
 
     R5 -.-> L1
-    R8 -.-> L2
+    R9 -.-> L2
 
     style R1 fill:#e3f2fd,color:#333
     style R2 fill:#e3f2fd,color:#333
@@ -367,13 +368,15 @@ flowchart LR
     style R4 fill:#e3f2fd,color:#333
     style R5 fill:#e3f2fd,color:#333
     style R6 fill:#e3f2fd,color:#333
-    style R7 fill:#c8e6c9,color:#333
-    style R8 fill:#ffcdd2,color:#333
+    style R7 fill:#4caf50,color:#fff
+    style R8 fill:#c8e6c9,color:#333
+    style R9 fill:#ffcdd2,color:#333
 ```
 
 **Middleware Behavior Notes:**
 
 - **`metricsMiddleware`** memiliki guard khusus untuk path `/metrics`: jika request mengarah ke `/api/v1/metrics`, middleware akan langsung `next()` tanpa mencatat metrik. Ini mencegah rekursi — endpoint `/metrics` sendiri tidak dihitung sebagai request.
+- **`globalLimiter`** di-skip untuk endpoint `/healthz`, `/health`, `/metrics` karena dipanggil oleh Docker healthcheck dan Prometheus scrape secara otomatis. Lihat [docs/rate-limiting.md](docs/rate-limiting.md) untuk detail.
 
 ---
 
@@ -387,6 +390,7 @@ graph TB
         subgraph "Application"
             API[rest-api<br/>:3000 → host:3030]
             DB[MySQL 8.4<br/>:3306]
+            RE[Redis 7<br/>:6379 ★ NEW]
         end
 
         subgraph "Monitoring Stack"
@@ -410,10 +414,11 @@ graph TB
         V3[(grafana-data)]
         V4[(loki-data)]
         V5[(tempo-data)]
+        V6[(redis-data ★ NEW)]
     end
 
     subgraph "Host Bind Mount"
-        V6[./logs<br/>→ /app/logs]
+        V7[./logs<br/>→ /app/logs]
     end
 
     DB --- V1
@@ -421,9 +426,11 @@ graph TB
     G --- V3
     L --- V4
     T --- V5
-    API --- V6
+    RE --- V6
+    API --- V7
 
     API --> DB
+    API -->|rate limit store| RE
     API -->|traces OTLP| A
     API -->|metrics scrape| P
     P -->|datasource| G
@@ -437,6 +444,7 @@ graph TB
 
     style API fill:#4caf50,color:#fff
     style DB fill:#4479a1,color:#fff
+    style RE fill:#d32f2f,color:#fff
     style P fill:#e85d4a,color:#fff
     style G fill:#f47b20,color:#fff
     style L fill:#f5a623,color:#fff
@@ -639,6 +647,7 @@ graph TB
 |---------|-----------|----------------|----------|---------|
 | Express API | **3030** | 3000 | HTTP | API endpoints |
 | MySQL | **3306** | 3306 | TCP | Database |
+| Redis | **6379** | 6379 | TCP | Rate limit store, cache |
 | Prometheus | **9090** | 9090 | HTTP | Metrics UI + API |
 | Grafana | **4000** | 3000 | HTTP | Dashboard UI |
 | Loki | **3100** | 3100 | HTTP | Log storage API |
@@ -667,6 +676,12 @@ graph TB
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Trace export endpoint |
 | `OTEL_SERVICE_NAME` | `typescript-restful-api` | Trace service name |
 | `OTEL_SDK_DISABLED` | — | Set `true` to disable tracing |
+| `APP_NAME` | `belajar-typescript-restful-api` | Redis key prefix — cegah bentrok |
+| `REDIS_URL` | — | Redis connection URL |
+| `RATE_LIMIT_ENABLED` | `true` | Master switch rate limiter |
+| `RATE_LIMIT_GLOBAL_MAX` | `60` | Max request per-IP per menit (global) |
+| `RATE_LIMIT_AUTH_MAX` | `20` | Max login attempt per-IP per 15 menit |
+| `RATE_LIMIT_API_MAX` | `500` | Max API call per-user per 15 menit |
 
 ---
 
@@ -677,22 +692,22 @@ graph TB
 | `GET` | `/api/v1/healthz` | — | `Monitoring.liveness` | — | `200 "OK"` |
 | `GET` | `/api/v1/health` | — | `Monitoring.health` | — | `200 {status}` / `503 {status, errors}` |
 | `GET` | `/api/v1/metrics` | — | `Monitoring.metrics` | — | `200 Prometheus text` |
-| `POST` | `/api/v1/users` | — | `User.register` | `REGISTER` | `201 {data}` / `400 {errors}` |
-| `POST` | `/api/v1/users/login` | — | `User.login` | `LOGIN` | `200 {data: tokens}` / `401` |
-| `POST` | `/api/v1/users/refresh` | — | `User.refresh` | `REFRESH` | `200 {data: tokens}` / `401` |
-| `GET` | `/api/v1/users/current` | JWT/X-API | `User.get` | — | `200 {data}` / `401` |
-| `PATCH` | `/api/v1/users/current` | JWT/X-API | `User.update` | `UPDATE` | `200 {data}` / `400` / `401` |
-| `DELETE` | `/api/v1/users/current` | JWT/X-API | `User.logout` | — | `200 {data: "OK"}` / `401` |
-| `POST` | `/api/v1/contacts` | JWT/X-API | `Contact.create` | `CREATE` | `201 {data}` / `400` / `401` |
-| `GET` | `/api/v1/contacts/:id` | JWT/X-API | `Contact.get` | — | `200 {data}` / `404` / `401` |
-| `PUT` | `/api/v1/contacts/:id` | JWT/X-API | `Contact.update` | `UPDATE` | `200 {data}` / `400` / `404` / `401` |
-| `DELETE` | `/api/v1/contacts/:id` | JWT/X-API | `Contact.remove` | — | `200 {data: "OK"}` / `404` / `401` |
-| `GET` | `/api/v1/contacts` | JWT/X-API | `Contact.search` | `SEARCH` | `200 {data[], paging}` / `401` |
-| `POST` | `/api/v1/contacts/:id/addresses` | JWT/X-API | `Address.create` | `CREATE` | `201 {data}` / `400` / `404` / `401` |
-| `GET` | `/api/v1/contacts/:id/addresses/:aid` | JWT/X-API | `Address.get` | `GET` | `200 {data}` / `404` / `401` |
-| `PUT` | `/api/v1/contacts/:id/addresses/:aid` | JWT/X-API | `Address.update` | `UPDATE` | `200 {data}` / `400` / `404` / `401` |
-| `DELETE` | `/api/v1/contacts/:id/addresses/:aid` | JWT/X-API | `Address.remove` | `REMOVE` | `200 {data: "OK"}` / `404` / `401` |
-| `GET` | `/api/v1/contacts/:id/addresses` | JWT/X-API | `Address.list` | — | `200 {data[], paging}` / `404` / `401` |
+| `POST` | `/api/v1/users` | — | `User.register` | `REGISTER` | `201 {data}` / `400 {errors}` / `429` |
+| `POST` | `/api/v1/users/login` | — | `User.login` | `LOGIN` | `200 {data: tokens}` / `401` / `429` |
+| `POST` | `/api/v1/users/refresh` | — | `User.refresh` | `REFRESH` | `200 {data: tokens}` / `401` / `429` |
+| `GET` | `/api/v1/users/current` | JWT/X-API | `User.get` | — | `200 {data}` / `401` / `429` |
+| `PATCH` | `/api/v1/users/current` | JWT/X-API | `User.update` | `UPDATE` | `200 {data}` / `400` / `401` / `429` |
+| `DELETE` | `/api/v1/users/current` | JWT/X-API | `User.logout` | — | `200 {data: "OK"}` / `401` / `429` |
+| `POST` | `/api/v1/contacts` | JWT/X-API | `Contact.create` | `CREATE` | `201 {data}` / `400` / `401` / `429` |
+| `GET` | `/api/v1/contacts/:id` | JWT/X-API | `Contact.get` | — | `200 {data}` / `404` / `401` / `429` |
+| `PUT` | `/api/v1/contacts/:id` | JWT/X-API | `Contact.update` | `UPDATE` | `200 {data}` / `400` / `404` / `401` / `429` |
+| `DELETE` | `/api/v1/contacts/:id` | JWT/X-API | `Contact.remove` | — | `200 {data: "OK"}` / `404` / `401` / `429` |
+| `GET` | `/api/v1/contacts` | JWT/X-API | `Contact.search` | `SEARCH` | `200 {data[], paging}` / `401` / `429` |
+| `POST` | `/api/v1/contacts/:id/addresses` | JWT/X-API | `Address.create` | `CREATE` | `201 {data}` / `400` / `404` / `401` / `429` |
+| `GET` | `/api/v1/contacts/:id/addresses/:aid` | JWT/X-API | `Address.get` | `GET` | `200 {data}` / `404` / `401` / `429` |
+| `PUT` | `/api/v1/contacts/:id/addresses/:aid` | JWT/X-API | `Address.update` | `UPDATE` | `200 {data}` / `400` / `404` / `401` / `429` |
+| `DELETE` | `/api/v1/contacts/:id/addresses/:aid` | JWT/X-API | `Address.remove` | `REMOVE` | `200 {data: "OK"}` / `404` / `401` / `429` |
+| `GET` | `/api/v1/contacts/:id/addresses` | JWT/X-API | `Address.list` | — | `200 {data[], paging}` / `404` / `401` / `429` |
 
 > **Note:** Route params `:id` and `:aid` only accept numeric values (`(\d+)` regex constraint). Non-numeric values produce 404.
 
@@ -711,6 +726,9 @@ graph TB
 | `401` | Invalid refresh token | `{ errors: [{ message: "Invalid refresh token" }] }` |
 | `404` | Resource not found | `{ errors: [{ message }] }` |
 | `409` | Unique constraint violation | `{ errors: [{ message: "Resource already exists" }] }` |
+| `429` | Rate limit exceeded (global) | `{ errors: [{ message: "Too many requests, please try again later" }] }` |
+| `429` | Rate limit exceeded (auth) | `{ errors: [{ message: "Too many login attempts, please try again later" }] }` |
+| `429` | Rate limit exceeded (api) | `{ errors: [{ message: "Too many requests, please slow down" }] }` |
 | `500` | Unknown error (production) | `{ errors: [{ message: "Internal server error" }] }` |
 | `500` | Unknown error (development) | `{ errors: [{ message: error.message }] }` |
 | `503` | DB unreachable (health check) | `{ status: "unhealthy", errors: [{ message }] }` |
@@ -737,3 +755,80 @@ graph TB
 Dashboard URL: `http://localhost:4000/d/typescript-rest-api-monitoring/`  
 Refresh: 5s | Time range: last 15 minutes  
 Datasources: Prometheus (default), Loki, Tempo
+
+---
+
+## 19. Rate Limiting Architecture
+
+### 3-Tier Redis-Based Rate Limiter
+
+| Tier | Key Basis | Window | Default Max | Target Endpoints |
+|------|-----------|--------|-------------|-----------------|
+| **Global** | IP address | 1 menit | 60 | Semua endpoint (kecuali health/metrics) |
+| **Auth** | IP address | 15 menit | 20 | `POST /users`, `/users/login`, `/users/refresh` |
+| **API** | Username (JWT) | 15 menit | 500 | Semua authenticated routes |
+
+### Tech Stack
+
+| Komponen | Package | Fungsi |
+|----------|---------|--------|
+| Rate limiter middleware | `express-rate-limit` ^7.5 | Sliding window untuk Express |
+| Redis store | `rate-limit-redis` ^4.2 | Shared state antar instance |
+| Redis client | `ioredis` ^5.7 | Koneksi Redis |
+
+### Middleware Pipeline (Updated)
+
+```mermaid
+flowchart LR
+    subgraph "Middleware Pipeline"
+        direction TB
+        R1["express.json()"] --> R2["compression()"]
+        R2 --> R3["cors()"]
+        R3 --> R4["requestIdMiddleware"]
+        R4 --> R5["requestLoggerMiddleware"]
+        R5 --> R6["metricsMiddleware"]
+        R6 --> R7["globalLimiter<br/>per-IP, skip: /health* /metrics"]
+    end
+
+    subgraph "Routing Layer"
+        R7 --> A{"Route Type?"}
+        A -->|public| PUB[publicRouter]
+        A -->|protected| AUTH[authMiddleware]
+        AUTH --> API[apiLimiter<br/>per-user]
+        API --> PRO[apiRouter]
+    end
+
+    subgraph "Response"
+        PUB --> RES[Controller → Service → DB → Response]
+        PRO --> RES
+        RES --> ERR[errorMiddleware]
+    end
+```
+
+### Redis Key Namespace
+
+Key menggunakan prefix `{APP_NAME}:ratelimit:{tier}:` untuk mencegah bentrok:
+
+```
+belajar-typescript-restful-api:ratelimit:global:192.168.1.100
+belajar-typescript-restful-api:ratelimit:auth:10.0.0.55
+belajar-typescript-restful-api:ratelimit:api:eko
+```
+
+### Rate Limit Response (HTTP 429)
+
+Semua response 429 mengikuti format error yang konsisten:
+
+```json
+{
+  "errors": [{"message": "Too many login attempts, please try again later"}]
+}
+```
+
+Serta menyertakan `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, dan `Retry-After` headers.
+
+### Konfigurasi
+
+Semua nilai dapat diatur via environment variable. `RATE_LIMIT_ENABLED=false` akan menonaktifkan semua rate limiter tanpa menghapus middleware.
+
+Detail lengkap: [docs/rate-limiting.md](docs/rate-limiting.md)
