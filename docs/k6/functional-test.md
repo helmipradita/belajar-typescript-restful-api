@@ -193,3 +193,24 @@ docker compose --profile k6 run --rm k6-functional-test
       iterations.....................: 5000
       vus............................: 200
 ```
+
+---
+
+## Error Scenarios Coverage (Subset)
+
+Seluruh 8 skenario error juga diuji secara terpisah oleh **k6 error test** (1 VU, 1 iterasi). Detail error scenarios yang tercakup:
+
+| Endpoint | Method | Skenario | Expected Status |
+|----------|--------|----------|-----------------|
+| `/api/v1/users` | POST | Register duplikat | 400 |
+| `/api/v1/users/login` | POST | Password salah | 401 |
+| `/api/v1/users/current` | GET | Tanpa token | 401 |
+| `/api/v1/users/current` | GET | Token invalid | 401 |
+| `/api/v1/contacts` | POST | Body invalid (email salah, field kosong) | 400 |
+| `/api/v1/contacts/:id` | GET | ID tidak ada (999999999) | 404 |
+| `/api/v1/contacts/:id/addresses` | POST | Body invalid (country kosong) | 400 |
+| `/api/v1/contacts/:id/addresses/:aid` | GET | ID tidak ada (999999999) | 404 |
+
+> Error test dapat dijalankan secara terpisah dengan: `docker compose --profile k6 run --rm k6-error-test`
+> Perbedaannya: functional test menjalankan error + success dalam 1 iterasi user-siklus penuh (200 VU),
+> sedangkan error test fokus murni pada skenario error (1 VU) tanpa beban. Keduanya komplementer.

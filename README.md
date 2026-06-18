@@ -60,11 +60,18 @@ graph TB
 
 ## Quick Start
 
+### Prerequisites
+
+- Node.js 20+
+- MySQL 8.4 (atau via Docker: `docker compose up -d mysql`)
+- npm
+
 ### Local Development
 
 ```bash
-# 1. Buat file .env
-echo 'DATABASE_URL="mysql://root:@localhost:3306/belajar_typescript_restful_api"' > .env
+# 1. Copy environment file
+cp .env.example .env
+# Sesuaikan DATABASE_URL jika perlu
 
 # 2. Install dependencies
 npm install
@@ -76,6 +83,41 @@ npx prisma generate
 # 4. Build & run
 npm run build
 npm run start
+```
+
+Akses di http://localhost:3030
+
+### Development Mode (Live Reload)
+
+Untuk development tanpa compile ulang, jalankan dengan `ts-node` atau `tsx`:
+
+```bash
+npx tsx watch src/main.ts
+```
+
+### Menambah Endpoint Baru (Developer Workflow)
+
+1. **Buat validasi** di `src/validations/` (Zod schema untuk request body/params)
+2. **Buat service** di `src/services/` (business logic, call Prisma)
+3. **Buat controller** di `src/controllers/` (parse request, call service, send response)
+4. **Daftarkan route** di `routes/public-api.ts` (tanpa auth) atau `routes/api.ts` (dengan auth)
+5. **Tambah test** di `test/api/` (Jest + Supertest)
+6. **Update docs** di `docs/apis/` jika endpoint baru
+
+### Prisma Migration Workflow
+
+```bash
+# Buat migration baru setelah ubah schema
+npx prisma migrate dev --name deskripsi_perubahan
+
+# Apply migration di production
+npx prisma migrate deploy
+
+# Reset database (development only — hapus semua data)
+npx prisma migrate reset --force
+
+# Lihat status migration
+npx prisma migrate status
 ```
 
 ### Docker (Full Stack)
@@ -123,7 +165,7 @@ docker compose --profile k6 run --rm k6-functional-test
 | DELETE | `/api/v1/contacts/:id/addresses/:aid` | Delete address |
 | GET | `/api/v1/contacts/:id/addresses` | List addresses (pagination via `?page=&size=`) |
 
-> Detail API spec: [docs/apis/user.md](docs/apis/user.md), [docs/apis/contact.md](docs/apis/contact.md), [docs/apis/address.md](docs/apis/address.md), [docs/apis/monitoring.md](docs/apis/monitoring.md)
+> Detail API spec: [docs/apis/user.md](docs/apis/user.md), [docs/apis/contact.md](docs/apis/contact.md), [docs/apis/address.md](docs/apis/address.md), [docs/monitoring-stack.md](docs/monitoring-stack.md) (monitoring)
 
 ## Project Structure
 
@@ -148,8 +190,8 @@ config/                # Docker monitoring stack configs
 ├── prometheus/        # Prometheus scrape config
 └── tempo/             # Tempo tracing config
 
-docs/apis/             # API specification docs
-docs/                  # Monitoring, k6 & error handling documentation
+docs/apis/             # API specification docs (user, contact, address)
+docs/                  # Architecture, monitoring, k6, error handling docs
 test/                  # Jest + Supertest integration tests (5 files, 54 test cases)
 ├── api/               # Endpoint integration tests
 ├── test-util.ts       # Shared test utilities
@@ -160,26 +202,47 @@ test/                  # Jest + Supertest integration tests (5 files, 54 test ca
 
 ### Unit/Integration Tests (Jest)
 
+Test menggunakan Jest + Supertest. Menjalankan integration test langsung ke Express app (tanpa perlu server running).
+
 ```bash
+# Run semua test (54 test cases)
 npm test
+
+# Run dengan coverage report
+npm run test:coverage
+
+# Run test file spesifik
+npx jest test/api/user.test.ts
+npx jest test/api/contact.test.ts
+
+# Run dengan filter test name
+npx jest -t "should return 200"
 ```
 
 **5 test files — 54 test cases:**
-- `test/api/user.test.ts` — register, login (JWT), refresh token, get (JWT + X-API-TOKEN), update, logout — **19 tests**
-- `test/api/contact.test.ts` — CRUD + search + paging — **14 tests**
-- `test/api/address.test.ts` — CRUD + list dengan pagination — **15 tests**
-- `test/api/monitoring.test.ts` — healthz, health, metrics — **3 tests**
-- `test/test-util.test.ts` — error handling edge cases — **3 tests**
+
+| File | Tests | Yang Diuji |
+|------|-------|-----------|
+| `test/api/user.test.ts` | **19** | Register, login (JWT), refresh token, get (JWT + X-API-TOKEN), update, logout |
+| `test/api/contact.test.ts` | **14** | CRUD + search + pagination |
+| `test/api/address.test.ts` | **15** | CRUD + list dengan pagination |
+| `test/api/monitoring.test.ts` | **3** | healthz, health, metrics |
+| `test/test-util.test.ts` | **3** | Error handling edge cases |
+
+### Test Environment
+
+Test menggunakan database MySQL yang sama dengan development (`DATABASE_URL` dari `.env`).
+Setiap test suite melakukan reset database via `prisma migrate reset --force` untuk memastikan isolasi.
 
 ### k6 Load & Performance Tests
 
-| Test | Command | Tujuan |
-|------|---------|--------|
-| Load Test | `docker compose --profile k6 run --rm k6-load-test` | Performa di beban normal (20 VU, 5 menit) |
-| Error Test | `docker compose --profile k6 run --rm k6-error-test` | Validasi error handling (1 VU, 1 iterasi) |
-| Functional | `docker compose --profile k6 run --rm k6-functional-test` | Semua 18+ endpoint, 200 VU, 5000 iterasi |
+| Test | Command | VUs | Threshold | Tujuan |
+|------|---------|-----|-----------|--------|
+| Load Test | `docker compose --profile k6 run --rm k6-load-test` | 20 (ramp) | p95 < 500ms | Performa di beban normal |
+| Error Test | `docker compose --profile k6 run --rm k6-error-test` | 1 | p95 < 1000ms | Validasi error handling |
+| Functional | `docker compose --profile k6 run --rm k6-functional-test` | 200 | p95 < 1000ms | Semua endpoint + skenario |
 
-> Detail dokumentasi: [docs/k6/](docs/k6/)
+> Detail dokumentasi k6: [docs/k6/load-test.md](docs/k6/load-test.md), [docs/k6/functional-test.md](docs/k6/functional-test.md)
 
 ## Monitoring & Observability
 
