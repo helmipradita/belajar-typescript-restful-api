@@ -8,6 +8,7 @@ import {apiRouter} from "../routes/api";
 import {requestIdMiddleware} from "../middleware/request-id-middleware";
 import {requestLoggerMiddleware} from "../middleware/request-logger-middleware";
 import {metricsMiddleware} from "../middleware/metrics-middleware";
+import {globalLimiter} from "../middleware/rate-limit-middleware";
 import {env} from "../config/env";
 
 export const app = express();
@@ -20,6 +21,7 @@ app.use(cors({
 app.use(requestIdMiddleware);
 app.use(requestLoggerMiddleware);
 app.use(metricsMiddleware);
+app.use(globalLimiter);
 app.use("/api/v1", publicRouter);
 app.use("/api/v1", apiRouter);
 app.use(errorMiddleware);

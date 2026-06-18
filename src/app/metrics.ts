@@ -16,3 +16,9 @@ export const httpRequestDurationSeconds = new client.Histogram({
     labelNames: ["method", "route", "status"] as const,
     buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
 });
+
+export const rateLimitBlockedTotal = new client.Counter({
+    name: "rate_limit_blocked_total",
+    help: "Total number of requests blocked by rate limiter.",
+    labelNames: ["tier", "method"] as const
+});

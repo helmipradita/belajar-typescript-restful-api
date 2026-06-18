@@ -4,6 +4,7 @@ import {shutdownTracing} from "./app/tracing";
 import {app} from "./app/app";
 import {logger} from "./app/logging";
 import {prismaClient} from "./app/database";
+import {redis} from "./app/redis";
 
 const server = app.listen(env.PORT, () => {
     logger.info("Listening on port " + env.PORT);
@@ -18,6 +19,9 @@ const gracefulShutdown = async (signal: string) => {
 
     await prismaClient.$disconnect();
     logger.info({event: "shutdown", message: "Prisma disconnected"});
+
+    await redis.quit();
+    logger.info({event: "shutdown", message: "Redis disconnected"});
 
     await shutdownTracing();
 
