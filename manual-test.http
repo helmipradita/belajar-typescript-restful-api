@@ -2,7 +2,7 @@
 ### KONFIGURASI
 ### ====================================
 @baseUrl = http://localhost:3030
-@bearerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImVrbyIsIm5hbWUiOiJFa28gS3Vybmlhd2FuIiwiaWF0IjoxNzgxMjMwNDU3LCJleHAiOjE3ODEyMzEzNTd9.xJByMcTV1rWvhChnsmC09MxQj0Le4Sht0pSfNNlH4AE
+@bearerToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImVrbyIsIm5hbWUiOiJFa28gS3Vybmlhd2FuIiwiaWF0IjoxNzgxMjU2MzQxLCJleHAiOjE3ODEyNTcyNDF9.Ovd3JWRUY5JeCocPz5sQdbOf4L1IrKxtJ82uYyWKf-Y
 
 ### ====================================
 ### 1. REGISTER

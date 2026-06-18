@@ -4,3 +4,10 @@ coverage
 .git
 .env
 npm-debug.log
+logs/
+docs/
+plans/
+test/
+config/
+*.md
+manual-test.http

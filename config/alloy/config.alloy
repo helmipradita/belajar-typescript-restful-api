@@ -37,8 +37,14 @@ discovery.relabel "dockerlogs" {
 loki.source.docker "default" {
   host = "unix:///var/run/docker.sock"
   targets = discovery.docker.dockerlogs.targets
-  labels = {"platform" = "docker"}
+  labels = {"platform" = "docker", "environment" = "production", "log_source" = "docker"}
   relabel_rules = discovery.relabel.dockerlogs.rules
+  forward_to = [loki.process.docker_logs.receiver]
+}
+
+loki.process "docker_logs" {
+  stage.docker { }
+
   forward_to = [loki.write.default.receiver]
 }
 
