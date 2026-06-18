@@ -2,6 +2,9 @@ import {prismaClient} from "../src/app/database";
 import bcrypt from "bcrypt";
 import {Address, Contact, User} from "@prisma/client";
 
+// RATE_LIMIT_ENABLED di-set via Jest setupFiles (test/setup.ts)
+// — jangan di-set di sini, modul env.ts sudah terlanjur di-cache.
+
 export class UserTest {
 
     static async delete() {
